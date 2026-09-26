@@ -25,6 +25,8 @@ return [
     'Status'                                     => 'Status',
     'Modulversion'                               => 'Moduleversie',
     'Verschlüsselte Verbindung (https)'          => 'Versleutelde verbinding (https)',
+    'nein, aber Heimnetz – die Apps verbinden sich zu Hause, auch per Tipp/QR-Code. Für unterwegs: HTTPS einrichten.' => 'nee, maar thuisnetwerk – de apps verbinden thuis, ook via tik/QR-code. Voor onderweg: HTTPS instellen.',
+    'Unverschlüsselt – nur im Heimnetz. Für unterwegs: HTTPS einrichten.' => 'Onversleuteld – alleen in het thuisnetwerk. Voor onderweg: HTTPS instellen.',
     'ja – Verbinden per Tipp/QR-Code ist möglich' => 'ja – verbinden via tik/QR-code is mogelijk',
     'nein – Verbinden per Tipp/QR-Code ist abgeschaltet; die Anmeldung mit Adresse, Benutzername und Passwort funktioniert' => 'nee – verbinden via tik/QR-code is uitgeschakeld; aanmelden met adres, gebruikersnaam en wachtwoord werkt',
     'Größte Datei beim Hochladen'                => 'Grootste uploadbestand',

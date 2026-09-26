@@ -92,6 +92,7 @@ trait AppPages
             'version'      => $this->customModuleVersion(),
             'api'          => self::API_VERSION,
             'https'        => str_starts_with($base_url, 'https://'),
+            'home'         => !str_starts_with($base_url, 'https://') && self::homeNetwork((string) parse_url($base_url, PHP_URL_HOST)),
             'max_upload'   => $this->maxUploadBytes(),
         ]);
     }
@@ -162,8 +163,10 @@ trait AppPages
         $base_url = Validator::attributes($request)->string('base_url');
         $host     = (string) parse_url($base_url, PHP_URL_HOST);
 
-        // Der Einmal-Code ist so gut wie ein Passwort - er darf nur verschluesselt reisen (Ausnahme: der eigene Rechner).
-        $secure = str_starts_with($base_url, 'https://') || in_array($host, ['localhost', '127.0.0.1', '::1'], true);
+        // Der Einmal-Code ist so gut wie ein Passwort - er darf nur verschluesselt reisen. Ausnahme: das Heimnetz
+        // (nas4webtrees unter http://192.168.x.y:8095, 26.09.2026) - dieselbe Regel, nach der die Apps http:// zulassen.
+        $home   = !str_starts_with($base_url, 'https://') && self::homeNetwork($host);
+        $secure = str_starts_with($base_url, 'https://') || $home;
 
         $connect_url = '';
         $deep_link   = '';
@@ -187,6 +190,7 @@ trait AppPages
             'tree'         => $tree,
             'logged_in'    => Auth::check(),
             'secure'       => $secure,
+            'home'         => $home,
             'download_url' => self::APP_DOWNLOAD_URL,
             'download_qr'  => $this->qrSvg(self::APP_DOWNLOAD_URL),
             'connect_url'  => $connect_url,
@@ -274,6 +278,45 @@ trait AppPages
     /**
      * @param array<string,string> $params
      */
+    /**
+     * Heimnetz wie in den Apps (Heimnetz.kt): private, Loopback- und Link-Local-Adressen (IPv4 10/8, 172.16/12,
+     * 192.168/16, 127/8, 169.254/16; IPv6 ::1, fc00::/7, fe80::/10), Namen ohne Punkt ("diskstation") und die
+     * Endungen .local, .lan, .home, .home.arpa, .internal, .fritz.box, .box. Der Server loest keine Namen auf.
+     */
+    public static function homeNetwork(string $host): bool
+    {
+        $host = strtolower(rtrim(trim($host, '[]'), '.'));
+
+        if ($host === '') {
+            return false;
+        }
+
+        $packed = filter_var($host, FILTER_VALIDATE_IP) !== false ? inet_pton($host) : false;
+
+        if ($packed !== false) {
+            $b = array_values(unpack('C*', $packed));
+
+            if (count($b) === 4) {
+                return $b[0] === 10 || $b[0] === 127 || ($b[0] === 172 && $b[1] >= 16 && $b[1] <= 31)
+                    || ($b[0] === 192 && $b[1] === 168) || ($b[0] === 169 && $b[1] === 254);
+            }
+
+            return $packed === inet_pton('::1') || ($b[0] & 0xFE) === 0xFC || ($b[0] === 0xFE && ($b[1] & 0xC0) === 0x80);
+        }
+
+        if (!str_contains($host, '.') && !str_contains($host, ':')) {
+            return true;
+        }
+
+        foreach (['.local', '.lan', '.home', '.home.arpa', '.internal', '.fritz.box', '.box'] as $suffix) {
+            if (str_ends_with($host, $suffix)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private function deepLink(string $scheme, string $base_url, array $params): string
     {
         return $scheme . '://connect?' . http_build_query(['url' => $base_url] + $params);

@@ -8,6 +8,7 @@ use Fisharebest\Webtrees\I18N;
  * @var string                                                           $title
  * @var bool                                                             $logged_in
  * @var bool                                                             $secure
+ * @var bool                                                             $home
  * @var string                                                           $download_url
  * @var string                                                           $download_qr
  * @var string                                                           $connect_url
@@ -73,6 +74,9 @@ use Fisharebest\Webtrees\I18N;
                     <?php if ($connect_qr !== '') : ?>
                         <p class="text-muted small mb-1"><?= I18N::translate('Am Computer? Dann diesen Code mit der Handy-Kamera scannen:') ?></p>
                         <div style="max-width: 13rem; background: #fff; padding: .5rem;"><?= $connect_qr ?></div>
+                    <?php endif ?>
+                    <?php if ($home) : ?>
+                        <p class="text-muted small mt-2"><?= I18N::translate('Unverschlüsselt – nur im Heimnetz. Für unterwegs: HTTPS einrichten.') ?></p>
                     <?php endif ?>
                     <p class="text-muted small mt-2"><?= I18N::translate('Der Code gilt %s Minuten und nur ein einziges Mal. Er verbindet die App mit deinem Konto – gib ihn nicht weiter.', I18N::number($minutes)) ?></p>
                 <?php endif ?>

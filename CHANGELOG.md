@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.9.2 – unreleased
+API level 17, unchanged. **Apps at home without HTTPS** (for nas4webtrees, where webtrees runs under
+`http://<nas-ip>:8095`): the page “App” now offers the connect button and QR code also over `http://` inside the home
+network – private, loopback and link-local addresses (`10/8`, `172.16/12`, `192.168/16`, `127/8`, `169.254/16`,
+`::1`, `fc00::/7`, `fe80::/10`), host names without a dot and the endings `.local`, `.lan`, `.home`, `.home.arpa`,
+`.internal`, `.fritz.box`, `.box`. The same rule decides in the apps (from wtAnd/wtWin/wtTux 1.19). A short note says
+“Unencrypted – home network only”; the status line in the module settings shows the home network in yellow instead of
+red. Public `http://` addresses stay blocked.
+
 ## 1.9.1 – 2026-09-26
 API level 17, unchanged. **Bug fix:** fact values over several lines – above all notes with `CONT` lines – lost
 their line breaks, so the lines ran together (“…seines Vaters.In der Familie…”). `facts[].value` now keeps line

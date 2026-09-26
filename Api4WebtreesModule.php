@@ -228,7 +228,7 @@ class Api4WebtreesModule extends AbstractModule implements ModuleCustomInterface
 
     public function customModuleVersion(): string
     {
-        return '1.9.1';
+        return '1.9.2';
     }
 
     public function customModuleLatestVersionUrl(): string

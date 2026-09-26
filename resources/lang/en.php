@@ -25,6 +25,8 @@ return [
     'Status'                                     => 'Status',
     'Modulversion'                               => 'Module version',
     'Verschlüsselte Verbindung (https)'          => 'Encrypted connection (https)',
+    'nein, aber Heimnetz – die Apps verbinden sich zu Hause, auch per Tipp/QR-Code. Für unterwegs: HTTPS einrichten.' => 'no, but home network – the apps connect at home, also by tap/QR code. For access on the go: set up HTTPS.',
+    'Unverschlüsselt – nur im Heimnetz. Für unterwegs: HTTPS einrichten.' => 'Unencrypted – home network only. For access on the go: set up HTTPS.',
     'ja – Verbinden per Tipp/QR-Code ist möglich' => 'yes – connecting by tap/QR code is possible',
     'nein – Verbinden per Tipp/QR-Code ist abgeschaltet; die Anmeldung mit Adresse, Benutzername und Passwort funktioniert' => 'no – connecting by tap/QR code is switched off; signing in with address, user name and password works',
     'Größte Datei beim Hochladen'                => 'Largest upload',
