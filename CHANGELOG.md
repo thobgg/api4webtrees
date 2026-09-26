@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.9.0 – unreleased
+## 1.9.0 – 2026-09-26
 New fields and actions only; existing answers keep all their fields. Each addition raises the API level, so a client
 can tell exactly which of them a server has.
 - **Level 13 – `Relationship`** `?xref1=…&xref2=…`: how two people are related, the way webtrees' relationship chart
