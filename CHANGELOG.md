@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.9.0 – unreleased
+New fields and actions only; existing answers keep all their fields. Each addition raises the API level, so a client
+can tell exactly which of them a server has.
+- **Level 13 – `Relationship`** `?xref1=…&xref2=…`: how two people are related, the way webtrees' relationship chart
+  finds it – the shortest paths through the families (at most 5), each with its steps (`person`, `relation`,
+  `family`), the relationship `name` as webtrees words it and the `commonAncestors` at the top of the path. With
+  pedigree collapse there are several paths of the same length. Privacy as in the chart; new error `chart-disabled`.
+
 ## 1.8.0 – 2026-09-26
 API level 12. New fields only; existing answers keep all their fields.
 - **`Individual.stepFamilies`**: the families of the parents with other partners – their children are the

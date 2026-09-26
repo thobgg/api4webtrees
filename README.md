@@ -186,6 +186,7 @@ Nothing else in the module is specific to one app: the JSON endpoints, rights an
 | `Family` | yes | `xref` | family with facts, children, media |
 | `Pedigree` | yes | `xref`, `generations` (1–7) | ancestors with ahnentafel number `n`; `hasParents` tells a client that the branch can be expanded further |
 | `Descendants` | yes | `xref`, `generations` (1–10, before 1.8.0: 1–4) | descendants as a tree |
+| `Relationship` | yes | `xref1`, `xref2`, `ancestors?` | level 13: how the two are related, like webtrees' relationship chart. `paths`: the shortest paths (at most 5, `more` if there are further ones of the same length; with pedigree collapse there are several). Each path has `name` (what `xref2` is to `xref1`, e.g. “great-aunt”), `commonAncestors` (xrefs at the top of the path: the parents of the family where it turns, a single person on a half-sibling line or when one is the other's ancestor; empty when the path goes through a spouse) and `steps` from `xref1` to `xref2`: `{person, relation, family}` with `relation` what this person is to the previous one: `father`, `mother`, `parent`, `son`, `daughter`, `child`, `husband`, `wife`, `spouse`, `brother`, `sister`, `sibling` (`null` on the first step). `ancestors=1` searches via common ancestors only; the tree setting “ancestors only” always applies. Privacy as in the chart: error `chart-disabled` if the chart is not available to the user, `private` if one of the two may not be shown (unless the tree shows private relationships, webtrees' default); people on the way appear as “Private” |
 | `Pending` | yes | – | moderators only: records with pending changes (`new`, `changed`, `deleted`), who changed them and when |
 | `Bookmarks` | yes | – | the signed-in user's bookmark list for this tree (persons); stored as a user preference per tree, level 11 |
 | `Anniversaries` | yes | `days` (1–60, default 14) | births, marriages and deaths whose anniversary falls into the next days, with the number of years |
@@ -211,7 +212,7 @@ Header `X-CSRF-TOKEN: <csrf from Info>`, JSON body. Answer: `{"ok":true,"xref":"
 | `UnlinkMedia` | `xref` | `{media}` – removes the link to the media object; the media object and its file stay |
 | `PrimaryMedia` | `xref` | `{media}` – makes this the person's main photo by moving its link before all other media links. While the change is pending, a further edit of the same person restores the old order (webtrees keeps the order of the accepted record; its own “re-order media” page behaves the same) |
 
-Dates in GEDCOM format (`12 MAR 1890`, `ABT 1850`, `BET 1900 AND 1910`). Error codes: `not-found`, `link-not-found`, `link-exists`, `invalid-relation`, `too-many-results`,
+Dates in GEDCOM format (`12 MAR 1890`, `ABT 1850`, `BET 1900 AND 1910`). Error codes: `not-found`, `chart-disabled`, `link-not-found`, `link-exists`, `invalid-relation`, `too-many-results`,
 `private`, `not-editable`, `not-editor`, `fact-locked`, `family-locked`, `fact-not-found`,
 `invalid-date`, `invalid-gedcom` (only one level-1 line, sub-lines 2–9 with a valid tag), `invalid-value` (text of the form `@X@` would be a pointer), `invalid-name` (surname between exactly two slashes), `link-tag-not-allowed`, `parent-exists`, `family-required`,
 `family-not-found`, `name-required`, `upload-not-allowed`, `upload-failed`.

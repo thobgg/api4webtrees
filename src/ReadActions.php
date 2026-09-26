@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Api4Webtrees;
 
+use Fisharebest\Algorithm\Dijkstra;
 use Fisharebest\ExtCalendar\GregorianCalendar;
 use Fisharebest\Webtrees\Auth;
 use Fisharebest\Webtrees\Contracts\UserInterface;
@@ -14,11 +15,15 @@ use Fisharebest\Webtrees\Http\Exceptions\HttpServiceUnavailableException;
 use Fisharebest\Webtrees\I18N;
 use Fisharebest\Webtrees\Individual;
 use Fisharebest\Webtrees\Media;
+use Fisharebest\Webtrees\Module\ModuleChartInterface;
+use Fisharebest\Webtrees\Module\RelationshipsChartModule;
 use Fisharebest\Webtrees\Place;
 use Fisharebest\Webtrees\Registry;
 use Fisharebest\Webtrees\Services\CalendarService;
 use Fisharebest\Webtrees\Services\LinkedRecordService;
+use Fisharebest\Webtrees\Services\ModuleService;
 use Fisharebest\Webtrees\Services\PendingChangesService;
+use Fisharebest\Webtrees\Services\RelationshipService;
 use Fisharebest\Webtrees\Services\SearchService;
 use Fisharebest\Webtrees\Services\TreeService;
 use Fisharebest\Webtrees\Session;
@@ -31,7 +36,12 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use InvalidArgumentException;
 
+use function array_filter;
+use function array_flip;
+use function array_keys;
 use function array_map;
+use function array_values;
+use function count;
 use function explode;
 use function implode;
 use function in_array;
@@ -39,6 +49,7 @@ use function max;
 use function mb_stripos;
 use function min;
 use function preg_match;
+use function preg_quote;
 use function preg_split;
 use function response;
 use function str_replace;
@@ -472,6 +483,264 @@ trait ReadActions
             'generations' => $generations,
             'ancestors'   => $data,
         ]);
+    }
+
+    /**
+     * Verwandtschaft zweier Personen (ab Stufe 13): ?xref1=I1&xref2=I2[&ancestors=1]
+     *
+     * Wie das Diagramm "Verwandtschaft" von webtrees: kuerzeste Wege ueber die Familien (Dijkstra ueber FAMS/FAMC),
+     * hoechstens MAX_RELATIONSHIP_PATHS davon. Bei Ahnenschwund gibt es mehrere gleich kurze Wege. Je Weg die Schritte
+     * von xref1 nach xref2 - relation: was die Person des Schritts fuer die vorige ist -, die Bezeichnung ("Cousine"),
+     * wie webtrees sie fuer xref2 aus Sicht von xref1 bildet, und die gemeinsamen Vorfahren am Scheitel des Wegs.
+     *
+     * Datenschutz wie im Diagramm: das Diagramm muss fuer den Benutzer freigegeben sein, beide Personen sichtbar (oder
+     * die Baumeinstellung "private Verwandtschaften zeigen" an). Personen unterwegs erscheinen, wie im Diagramm, als
+     * Kurzfassung - fuer nicht sichtbare also "Privat" ohne Daten. "Nur ueber Vorfahren" des Baums gilt auch hier.
+     */
+    public function getRelationshipAction(ServerRequestInterface $request): ResponseInterface
+    {
+        $tree   = Validator::attributes($request)->tree();
+        $params = Validator::queryParams($request);
+        $first  = Registry::individualFactory()->make($params->isXref()->string('xref1'), $tree);
+        $second = Registry::individualFactory()->make($params->isXref()->string('xref2'), $tree);
+
+        $chart = Registry::container()->get(ModuleService::class)
+            ->findByComponent(ModuleChartInterface::class, $tree, Auth::user())
+            ->first(static fn ($module): bool => $module instanceof RelationshipsChartModule);
+
+        if ($chart === null) {
+            return $this->error(403, 'chart-disabled');
+        }
+
+        if ($first === null || $second === null) {
+            return $this->error(404, 'not-found');
+        }
+
+        $show_private = $tree->getPreference('SHOW_PRIVATE_RELATIONSHIPS') === '1';
+
+        if (!$show_private && (!$first->canShow() || !$second->canShow())) {
+            return $this->error(403, 'private');
+        }
+
+        $ancestors = $tree->getPreference('RELATIONSHIP_ANCESTORS', RelationshipsChartModule::DEFAULT_ANCESTORS) === '1'
+            || $params->boolean('ancestors', false);
+
+        $all   = $first->xref() === $second->xref() ? [[$first->xref()]] : $this->relationshipPaths($first, $second, $ancestors);
+        $paths = [];
+
+        foreach ($all as $path) {
+            $json = $this->relationshipPathJson($tree, $path);
+
+            // Wie im Diagramm: ein Weg, dessen Glieder sich nicht zuordnen lassen, faellt weg.
+            if ($json !== null) {
+                $paths[] = $json;
+            }
+
+            if (count($paths) === self::MAX_RELATIONSHIP_PATHS) {
+                break;
+            }
+        }
+
+        return response([
+            'xref1'     => $first->xref(),
+            'xref2'     => $second->xref(),
+            'ancestors' => $ancestors,
+            'paths'     => $paths,
+            'more'      => count($all) > count($paths),
+        ]);
+    }
+
+    /**
+     * Die kuerzesten Wege von $first zu $second als abwechselnde Liste Person, Familie, Person ... - der Graph wie in
+     * RelationshipsChartModule::calculateRelationships() (dort privat, deshalb hier nachgebaut, ohne die Umwege).
+     *
+     * @return list<list<string>>
+     */
+    private function relationshipPaths(Individual $first, Individual $second, bool $ancestors): array
+    {
+        $tree_id = $first->tree()->id();
+        $rows    = DB::table('link')
+            ->where('l_file', '=', $tree_id)
+            ->whereIn('l_type', ['FAMS', 'FAMC'])
+            ->select(['l_from', 'l_to'])
+            ->get();
+
+        $keep    = $ancestors ? array_flip($this->relationshipAncestors($first->xref(), $second->xref(), $tree_id)) : [];
+        $exclude = $ancestors ? array_flip($this->commonSpouseFamilies($first->xref(), $second->xref(), $tree_id)) : [];
+
+        $graph = [];
+
+        foreach ($rows as $row) {
+            if (!$ancestors || isset($keep[$row->l_from]) && !isset($exclude[$row->l_to])) {
+                $graph[$row->l_from][$row->l_to] = 1;
+                $graph[$row->l_to][$row->l_from] = 1;
+            }
+        }
+
+        if (!isset($graph[$first->xref()], $graph[$second->xref()])) {
+            return [];
+        }
+
+        $paths = [];
+
+        foreach ((new Dijkstra($graph))->shortestPaths($first->xref(), $second->xref()) as $path) {
+            // Die Bibliothek macht aus Kennungen wie "123" Zahlen.
+            $path = array_map(static fn ($xref): string => (string) $xref, $path);
+
+            $paths[implode('-', $path)] = $path;
+        }
+
+        return array_values($paths);
+    }
+
+    /**
+     * Beide Personen und alle ihre Vorfahren (wie allAncestors() im Diagramm).
+     *
+     * @return list<string>
+     */
+    private function relationshipAncestors(string $xref1, string $xref2, int $tree_id): array
+    {
+        $found = [$xref1 => true, $xref2 => true];
+        $queue = [$xref1, $xref2];
+
+        while ($queue !== []) {
+            $parents = DB::table('link AS l1')
+                ->join('link AS l2', static function (JoinClause $join): void {
+                    $join
+                        ->on('l1.l_to', '=', 'l2.l_to')
+                        ->on('l1.l_file', '=', 'l2.l_file');
+                })
+                ->where('l1.l_file', '=', $tree_id)
+                ->where('l1.l_type', '=', 'FAMC')
+                ->where('l2.l_type', '=', 'FAMS')
+                ->whereIn('l1.l_from', $queue)
+                ->pluck('l2.l_from');
+
+            $queue = [];
+
+            foreach ($parents as $parent) {
+                if (!isset($found[$parent])) {
+                    $found[$parent] = true;
+                    $queue[]        = $parent;
+                }
+            }
+        }
+
+        return array_map(static fn ($xref): string => (string) $xref, array_keys($found));
+    }
+
+    /**
+     * Familien, in denen beide Personen Partner sind (wie excludeFamilies() im Diagramm).
+     *
+     * @return list<string>
+     */
+    private function commonSpouseFamilies(string $xref1, string $xref2, int $tree_id): array
+    {
+        return DB::table('link AS l1')
+            ->join('link AS l2', static function (JoinClause $join): void {
+                $join
+                    ->on('l1.l_to', '=', 'l2.l_to')
+                    ->on('l1.l_type', '=', 'l2.l_type')
+                    ->on('l1.l_file', '=', 'l2.l_file');
+            })
+            ->where('l1.l_file', '=', $tree_id)
+            ->where('l1.l_type', '=', 'FAMS')
+            ->where('l1.l_from', '=', $xref1)
+            ->where('l2.l_from', '=', $xref2)
+            ->pluck('l1.l_to')
+            ->map(static fn ($xref): string => (string) $xref)
+            ->all();
+    }
+
+    /**
+     * Ein Weg als JSON. null, wenn eine Familie des Wegs ihre Glieder nicht (mehr) enthaelt.
+     *
+     * @param list<string> $path Person, Familie, Person ...
+     *
+     * @return array<string,mixed>|null
+     */
+    private function relationshipPathJson(Tree $tree, array $path): array|null
+    {
+        $codes = [
+            'HUSB-HUSB' => ['husband', 'wife', 'spouse'], 'HUSB-WIFE' => ['husband', 'wife', 'spouse'],
+            'WIFE-HUSB' => ['husband', 'wife', 'spouse'], 'WIFE-WIFE' => ['husband', 'wife', 'spouse'],
+            'HUSB-CHIL' => ['son', 'daughter', 'child'],  'WIFE-CHIL' => ['son', 'daughter', 'child'],
+            'CHIL-HUSB' => ['father', 'mother', 'parent'], 'CHIL-WIFE' => ['father', 'mother', 'parent'],
+            'CHIL-CHIL' => ['brother', 'sister', 'sibling'],
+        ];
+
+        $first  = Registry::individualFactory()->make($path[0], $tree);
+        $nodes  = [$first];
+        $steps  = [['person' => $this->personSummary($first), 'relation' => null, 'family' => null]];
+        // Gemeinsame Vorfahren: wo der Weg vom Hinauf (Eltern) ins Hinab (Kinder, Geschwister) wechselt. Nur bei
+        // Blutsverwandtschaft - geht der Weg ueber einen Ehepartner, gibt es keine gemeinsamen Vorfahren.
+        $peak   = [];
+        $upward = false;
+        $inlaw  = false;
+
+        for ($i = 1, $count = count($path); $i < $count; $i += 2) {
+            $family = Registry::familyFactory()->make($path[$i], $tree);
+            $next   = Registry::individualFactory()->make($path[$i + 1], $tree);
+
+            if (!$family instanceof Family || !$next instanceof Individual) {
+                return null;
+            }
+
+            $role1 = $this->familyRole($family, $path[$i - 1]);
+            $role2 = $this->familyRole($family, $path[$i + 1]);
+            $set   = $codes[$role1 . '-' . $role2] ?? null;
+
+            if ($set === null) {
+                return null;
+            }
+
+            $relation = $set[match ($next->sex()) { 'M' => 0, 'F' => 1, default => 2 }];
+
+            if ($set[0] === 'father') {
+                $upward = true;
+            } elseif ($set[0] === 'husband') {
+                $inlaw = true;
+            } elseif ($set[0] === 'brother' && $peak === []) {
+                // Geschwister: die Eltern der gemeinsamen Familie
+                $peak   = array_values(array_filter([$this->familyMember($family, 'HUSB'), $this->familyMember($family, 'WIFE')]));
+                $upward = false;
+            } elseif ($set[0] === 'son' && $upward && $peak === []) {
+                // hinauf bis zu einer Person, von dort in einer anderen Familie hinab (Halbgeschwister-Linie)
+                $peak   = [$path[$i - 1]];
+                $upward = false;
+            }
+
+            $nodes[] = $family;
+            $nodes[] = $next;
+            $steps[] = ['person' => $this->personSummary($next), 'relation' => $relation, 'family' => $family->xref()];
+        }
+
+        // Nur hinauf: xref2 ist selbst Vorfahr von xref1.
+        if ($peak === [] && $upward) {
+            $peak = [$path[count($path) - 1]];
+        }
+
+        // Nur hinab: xref1 ist Vorfahr von xref2.
+        if ($peak === [] && count($path) > 1 && !$inlaw && !$upward) {
+            $peak = [$path[0]];
+        }
+
+        return [
+            'name'            => $this->plain(Registry::container()->get(RelationshipService::class)->nameFromPath($nodes, I18N::language())),
+            'commonAncestors' => $inlaw ? [] : $peak,
+            'steps'           => $steps,
+        ];
+    }
+
+    /** HUSB, WIFE oder CHIL - wie die Person in der Familie steht ('' wenn gar nicht). */
+    private function familyRole(Family $family, string $xref): string
+    {
+        return preg_match('/\n1 (HUSB|WIFE|CHIL) @' . preg_quote($xref, '/') . '@/', $family->gedcom(), $match) === 1 ? $match[1] : '';
+    }
+
+    private function familyMember(Family $family, string $tag): string|null
+    {
+        return preg_match('/\n1 ' . $tag . ' @([^@]+)@/', $family->gedcom(), $match) === 1 ? $match[1] : null;
     }
 
     /**

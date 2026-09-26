@@ -79,7 +79,8 @@ class Api4WebtreesModule extends AbstractModule implements ModuleCustomInterface
     // 11: Bookmarks (Merkliste je Benutzer und Baum, Benutzereinstellung), given/surname je Person
     // 12: Individual.stepFamilies (Familien der Eltern mit anderen Partnern = Halbgeschwister), hasParents/partnersCount/
     //     childrenCount fuer die Person und alle Personen ihrer Familien in der Individual-Antwort
-    public const int    API_VERSION = 12;
+    // 13: Relationship (Verwandtschaftswege zweier Personen wie im Diagramm "Verwandtschaft")
+    public const int    API_VERSION = 13;
 
     /** Benutzereinstellung je Baum: die Merkliste als Liste von Personenkennungen. */
     private const string BOOKMARKS_PREF = 'api4webtrees_bookmarks';
@@ -116,6 +117,8 @@ class Api4WebtreesModule extends AbstractModule implements ModuleCustomInterface
     private const int PLACES_LIMIT        = 20;
     private const int MAX_PEDIGREE_GEN    = 7;
     private const int MAX_DESCENDANTS_GEN = 10;
+    // Relationship: so viele gleich kurze Wege hoechstens (Ahnenschwund kann viele ergeben)
+    private const int MAX_RELATIONSHIP_PATHS = 5;
 
     // Diese Tags sind Verknuepfungen oder Verwaltungsdaten, keine Ereignisse.
     // (HUSB/WIFE/CHIL sind die Verknuepfungen innerhalb eines Familien-Datensatzes.)
@@ -219,7 +222,7 @@ class Api4WebtreesModule extends AbstractModule implements ModuleCustomInterface
 
     public function customModuleVersion(): string
     {
-        return '1.8.0';
+        return '1.9.0';
     }
 
     public function customModuleLatestVersionUrl(): string
