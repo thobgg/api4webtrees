@@ -11,6 +11,8 @@ can tell exactly which of them a server has.
   `_RUFNAME` as written by Ahnenblatt and GEDCOM-L), christening (`CHR`, else `BAPM`) and burial (`BURI`, else
   `CREM`) with date and place like `birth`/`death`, and the first occupation. For charts and lists that show more
   than birth and death without fetching each person.
+- **Level 15 – `Pedigree?siblings=1`**: each ancestor carries `siblings`, the other children of the family its parents
+  come from. For ancestor charts with siblings. Without the parameter the answer is unchanged.
 
 ## 1.8.0 – 2026-09-26
 API level 12. New fields only; existing answers keep all their fields.

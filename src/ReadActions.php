@@ -431,6 +431,7 @@ trait ReadActions
 
     /**
      * Ahnentafel: ?xref=I123&generations=4  (Kekule-Nummern: 1 = Proband, 2 = Vater, 3 = Mutter ...)
+     * &siblings=1 (ab Stufe 15): je Vorfahr seine Geschwister aus derselben Elternfamilie, als Kurzfassung.
      */
     public function getPedigreeAction(ServerRequestInterface $request): ResponseInterface
     {
@@ -467,15 +468,32 @@ trait ReadActions
             }
         }
 
+        $with_siblings = Validator::queryParams($request)->boolean('siblings', false);
+        // Bei Ahnenschwund steht dieselbe Person mehrfach in der Tafel - ihre Geschwister nur einmal zusammenstellen.
+        $siblings = [];
+
         // hasParents: damit die App an der obersten Reihe ein "weiter nach oben"-Symbol zeigen kann.
         $data = [];
         foreach ($ancestors as $n => $individual) {
             $family = $individual->canShow() ? $individual->childFamilies()->first() : null;
-            $data[] = [
+            $entry  = [
                 'n'          => $n,
                 'person'     => $this->personSummary($individual),
                 'hasParents' => $family instanceof Family && ($family->husband() instanceof Individual || $family->wife() instanceof Individual),
             ];
+
+            if ($with_siblings) {
+                // Dieselbe Familie wie fuer die Eltern oben - Halbgeschwister gehoeren nicht dazu.
+                $entry['siblings'] = $siblings[$individual->xref()] ??= $family instanceof Family
+                    ? $family->children()
+                        ->filter(static fn (Individual $child): bool => $child->xref() !== $individual->xref())
+                        ->map(fn (Individual $child): array => $this->personSummary($child))
+                        ->values()
+                        ->all()
+                    : [];
+            }
+
+            $data[] = $entry;
         }
 
         return response([

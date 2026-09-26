@@ -81,7 +81,8 @@ class Api4WebtreesModule extends AbstractModule implements ModuleCustomInterface
     //     childrenCount fuer die Person und alle Personen ihrer Familien in der Individual-Antwort
     // 13: Relationship (Verwandtschaftswege zweier Personen wie im Diagramm "Verwandtschaft")
     // 14: call, chr, buri, occupation je Person (Kurzfassung)
-    public const int    API_VERSION = 14;
+    // 15: Pedigree?siblings=1 - je Vorfahr die Geschwister
+    public const int    API_VERSION = 15;
 
     /** Benutzereinstellung je Baum: die Merkliste als Liste von Personenkennungen. */
     private const string BOOKMARKS_PREF = 'api4webtrees_bookmarks';
