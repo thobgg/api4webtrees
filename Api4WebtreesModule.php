@@ -83,7 +83,8 @@ class Api4WebtreesModule extends AbstractModule implements ModuleCustomInterface
     // 14: call, chr, buri, occupation je Person (Kurzfassung)
     // 15: Pedigree?siblings=1 - je Vorfahr die Geschwister
     // 16: Pedigree bis 12 Generationen (war 7)
-    public const int    API_VERSION = 16;
+    // 17: Export - der ganze sichtbare Baum seitenweise (Personen, Familien, Fakten, Medien)
+    public const int    API_VERSION = 17;
 
     /** Benutzereinstellung je Baum: die Merkliste als Liste von Personenkennungen. */
     private const string BOOKMARKS_PREF = 'api4webtrees_bookmarks';
@@ -122,6 +123,8 @@ class Api4WebtreesModule extends AbstractModule implements ModuleCustomInterface
     private const int MAX_DESCENDANTS_GEN = 10;
     // Relationship: so viele gleich kurze Wege hoechstens (Ahnenschwund kann viele ergeben)
     private const int MAX_RELATIONSHIP_PATHS = 5;
+    // Export: Datensaetze je Seite (Personen und Familien zusammen)
+    private const int EXPORT_PAGE_SIZE = 250;
 
     // Diese Tags sind Verknuepfungen oder Verwaltungsdaten, keine Ereignisse.
     // (HUSB/WIFE/CHIL sind die Verknuepfungen innerhalb eines Familien-Datensatzes.)

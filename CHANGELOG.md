@@ -15,6 +15,10 @@ can tell exactly which of them a server has.
   come from. For ancestor charts with siblings. Without the parameter the answer is unchanged.
 - **Level 16 – `Pedigree` allows 12 generations** (was 7), for large ancestor charts. `generations` in the answer
   reports the depth actually delivered, so a client sees when an older module stopped at 7.
+- **Level 17 – `Export?page=…`**: the whole visible tree, page by page – individuals with all facts and media, then
+  families, linked by xref only. For lists and books in the desktop client. Privacy is webtrees' own: whoever
+  appears in a family or chart appears here, hidden records as placeholders without facts, following the tree
+  setting “show private relationships”.
 
 ## 1.8.0 – 2026-09-26
 API level 12. New fields only; existing answers keep all their fields.

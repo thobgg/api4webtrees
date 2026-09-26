@@ -786,6 +786,113 @@ trait ReadActions
     }
 
     /**
+     * Der ganze sichtbare Baum fuer Listen und Buecher (ab Stufe 17): ?page=<n>
+     *
+     * Erst alle Personen, dann alle Familien, je Seite EXPORT_PAGE_SIZE Datensaetze. Verknuepft wird nur ueber
+     * Kennungen (famc, fams, husband, wife, children) - der Client setzt den Baum selbst zusammen. total nennt die
+     * Datensaetze insgesamt (fuer eine Fortschrittsanzeige); eine Seite kann weniger enthalten, wenn der Benutzer
+     * einzelne nicht sehen darf. lastChange wie in Info: aendert er sich waehrend des Abrufs, von vorn beginnen.
+     *
+     * Datenschutz macht webtrees selbst: wer in einer Familie erscheint und welche Familien einer Person
+     * sichtbar sind, kommt aus husband(), wife(), children(), childFamilies(), spouseFamilies() - mit der
+     * Baumeinstellung "private Verwandtschaften zeigen" also wie in den Diagrammen. Personen und Familien, die nur
+     * so verknuepft, aber nicht sichtbar sind, kommen als Platzhalter ohne Fakten und Medien (private: true).
+     */
+    public function getExportAction(ServerRequestInterface $request): ResponseInterface
+    {
+        $tree   = Validator::attributes($request)->tree();
+        $page   = max(1, Validator::queryParams($request)->integer('page', 1));
+        $offset = ($page - 1) * self::EXPORT_PAGE_SIZE;
+
+        // Dieselbe Stufe, die webtrees fuer Verknuepfungen nimmt (siehe Individual::childFamilies()).
+        $link_level = $tree->getPreference('SHOW_PRIVATE_RELATIONSHIPS') === '1' ? Auth::PRIV_HIDE : Auth::accessLevel($tree);
+
+        $individual_count = DB::table('individuals')->where('i_file', '=', $tree->id())->count();
+        $family_count     = DB::table('families')->where('f_file', '=', $tree->id())->count();
+
+        $individuals = [];
+        $families    = [];
+
+        if ($offset < $individual_count) {
+            $rows = DB::table('individuals')
+                ->where('i_file', '=', $tree->id())
+                ->orderBy('i_id')
+                ->offset($offset)
+                ->limit(self::EXPORT_PAGE_SIZE)
+                ->get()
+                ->map(Registry::individualFactory()->mapper($tree));
+
+            foreach ($rows as $individual) {
+                if ($individual instanceof Individual && $individual->canShowName($link_level)) {
+                    $individuals[] = $this->exportIndividualJson($individual);
+                }
+            }
+        }
+
+        $family_offset = max(0, $offset - $individual_count);
+        $family_limit  = self::EXPORT_PAGE_SIZE - max(0, min(self::EXPORT_PAGE_SIZE, $individual_count - $offset));
+
+        if ($family_limit > 0 && $family_offset < $family_count) {
+            $rows = DB::table('families')
+                ->where('f_file', '=', $tree->id())
+                ->orderBy('f_id')
+                ->offset($family_offset)
+                ->limit($family_limit)
+                ->get()
+                ->map(Registry::familyFactory()->mapper($tree));
+
+            foreach ($rows as $family) {
+                if ($family instanceof Family && $family->canShow($link_level)) {
+                    $families[] = $this->exportFamilyJson($family);
+                }
+            }
+        }
+
+        return response([
+            'lastChange'  => (int) DB::table('change')->where('gedcom_id', '=', $tree->id())->max('change_id'),
+            'page'        => $page,
+            'nextPage'    => $offset + self::EXPORT_PAGE_SIZE < $individual_count + $family_count ? $page + 1 : null,
+            'total'       => ['individuals' => $individual_count, 'families' => $family_count],
+            'individuals' => $individuals,
+            'families'    => $families,
+        ]);
+    }
+
+    /**
+     * @return array<string,mixed>
+     */
+    private function exportIndividualJson(Individual $individual): array
+    {
+        $visible = $individual->canShow();
+
+        return $this->personSummary($individual) + [
+            'famc'  => $individual->childFamilies()->map(static fn (Family $family): string => $family->xref())->values()->all(),
+            'fams'  => $individual->spouseFamilies()->map(static fn (Family $family): string => $family->xref())->values()->all(),
+            'facts' => $visible ? $this->factsJson($individual) : [],
+            'media' => $visible ? $this->mediaJson($individual) : [],
+        ];
+    }
+
+    /**
+     * @return array<string,mixed>
+     */
+    private function exportFamilyJson(Family $family): array
+    {
+        $visible = $family->canShow();
+
+        return [
+            'xref'     => $family->xref(),
+            'private'  => !$visible,
+            'husband'  => $family->husband()?->xref(),
+            'wife'     => $family->wife()?->xref(),
+            'children' => $family->children()->map(static fn (Individual $child): string => $child->xref())->values()->all(),
+            'marriage' => $visible ? $this->eventJson($family->getMarriageDate(), $family->getMarriagePlace()) : null,
+            'facts'    => $visible ? $this->factsJson($family) : [],
+            'media'    => $visible ? $this->mediaJson($family) : [],
+        ];
+    }
+
+    /**
      * Datensaetze mit ausstehenden Aenderungen - nur fuer Moderatoren und Verwalter.
      */
     public function getPendingAction(ServerRequestInterface $request): ResponseInterface
