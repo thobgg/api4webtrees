@@ -7,6 +7,10 @@ can tell exactly which of them a server has.
   finds it – the shortest paths through the families (at most 5), each with its steps (`person`, `relation`,
   `family`), the relationship `name` as webtrees words it and the `commonAncestors` at the top of the path. With
   pedigree collapse there are several paths of the same length. Privacy as in the chart; new error `chart-disabled`.
+- **Level 14 – `call`, `chr`, `buri`, `occupation`** on every person: the call name (given name marked with `*`, or
+  `_RUFNAME` as written by Ahnenblatt and GEDCOM-L), christening (`CHR`, else `BAPM`) and burial (`BURI`, else
+  `CREM`) with date and place like `birth`/`death`, and the first occupation. For charts and lists that show more
+  than birth and death without fetching each person.
 
 ## 1.8.0 – 2026-09-26
 API level 12. New fields only; existing answers keep all their fields.

@@ -66,19 +66,25 @@ trait JsonBuilders
         $surname = str_contains($primary['surname'] ?? '', '@') ? '' : $this->plain($primary['surname'] ?? '');
 
         $summary = [
-            'xref'     => $individual->xref(),
-            'name'     => $this->plain($individual->fullName()),
-            'sortName' => $individual->sortName(),
-            'given'    => $individual->canShowName() ? $given : '',
-            'surname'  => $individual->canShowName() ? $surname : '',
-            'sex'      => $individual->sex(),
-            'isDead'   => $individual->isDead(),
-            'private'  => !$individual->canShow(),
-            'lifespan' => $this->plain($individual->lifespan()),
-            'birth'    => $this->eventJson($individual->getBirthDate(), $individual->getBirthPlace()),
-            'death'    => $this->eventJson($individual->getDeathDate(), $individual->getDeathPlace()),
-            'thumb'    => $thumb,
-            'url'      => $individual->url(),
+            'xref'       => $individual->xref(),
+            'name'       => $this->plain($individual->fullName()),
+            'sortName'   => $individual->sortName(),
+            'given'      => $individual->canShowName() ? $given : '',
+            'surname'    => $individual->canShowName() ? $surname : '',
+            'sex'        => $individual->sex(),
+            'isDead'     => $individual->isDead(),
+            'private'    => !$individual->canShow(),
+            'lifespan'   => $this->plain($individual->lifespan()),
+            'birth'      => $this->eventJson($individual->getBirthDate(), $individual->getBirthPlace()),
+            'death'      => $this->eventJson($individual->getDeathDate(), $individual->getDeathPlace()),
+            // ab Stufe 14: Rufname, Taufe, Begraebnis und erster Beruf - fuer Tafeln und Listen, ohne die Person
+            // einzeln abzurufen. facts() liefert fuer nicht sichtbare Personen nichts, dann bleibt alles leer.
+            'call'       => $individual->canShowName() ? $this->callName($individual, $primary['full'] ?? '') : '',
+            'chr'        => $this->firstEventJson($individual, ['CHR', 'BAPM']),
+            'buri'       => $this->firstEventJson($individual, ['BURI', 'CREM']),
+            'occupation' => $this->firstFactValue($individual, 'OCCU'),
+            'thumb'      => $thumb,
+            'url'        => $individual->url(),
         ];
 
         if ($with_counts) {
@@ -88,6 +94,47 @@ trait JsonBuilders
         }
 
         return $summary;
+    }
+
+    /**
+     * Rufname: der mit * markierte Vorname ("Johann Heinrich*") oder, wie Ahnenblatt und GEDCOM-L ihn schreiben,
+     * 2 _RUFNAME unter dem ersten Namen. '' wenn keiner angegeben ist.
+     */
+    private function callName(Individual $individual, string $full_name): string
+    {
+        if (preg_match('/<span class="starredname">(.*?)<\/span>/', $full_name, $match) === 1) {
+            return $this->plain($match[1]);
+        }
+
+        return trim($individual->facts(['NAME'])->first()?->attribute('_RUFNAME') ?? '');
+    }
+
+    /**
+     * Datum und Ort des ersten sichtbaren Ereignisses mit einem der Tags - die Tags in dieser Reihenfolge bevorzugt
+     * (Taufe: CHR vor BAPM, Begraebnis: BURI vor CREM).
+     *
+     * @param list<string> $tags
+     *
+     * @return array<string,mixed>|null
+     */
+    private function firstEventJson(Individual $individual, array $tags): array|null
+    {
+        foreach ($tags as $tag) {
+            $fact = $individual->facts([$tag])->first();
+
+            if ($fact instanceof Fact) {
+                return $this->eventJson($fact->date(), $fact->place());
+            }
+        }
+
+        return null;
+    }
+
+    private function firstFactValue(Individual $individual, string $tag): string|null
+    {
+        $fact = $individual->facts([$tag])->first(static fn (Fact $fact): bool => $fact->value() !== '');
+
+        return $fact instanceof Fact ? $this->factValue($fact, $individual->tree()) : null;
     }
 
     /**

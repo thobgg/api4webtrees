@@ -178,6 +178,12 @@ Nothing else in the module is specific to one app: the JSON endpoints, rights an
 
 ### Reading (GET)
 
+Every person in an answer comes as the same short form: `xref`, `name`, `sortName`, `given`, `surname`, `sex`,
+`isDead`, `private`, `lifespan`, `birth` and `death` (`{date, place}` or `null`), `thumb`, `url`, and from level 14
+`call` (call name: the given name marked with `*` or `_RUFNAME`, else empty), `chr` (christening, `CHR` or else
+`BAPM`), `buri` (burial, `BURI` or else `CREM`) – both like `birth` – and `occupation` (the first `OCCU`, or `null`).
+For people the user may not see, all of these stay empty.
+
 | Action | Tree | Parameters | Content |
 | - | - | - | - |
 | `Info` | – | – | versions, `api` level, user, visible trees with role, rights, number of individuals and (for moderators) of records with pending changes, `maxUpload` in bytes, CSRF token, `trees[].lastChange` (number of the latest change in the tree: a different value than last time means “reload”; compare for equality only, a new GEDCOM import resets it) |
@@ -233,6 +239,7 @@ Taken from the demo tree, shortened (`…`). Addresses are abbreviated to `<base
     "birth": { "date": { "text": "14. März 1985", "year": 1985, "jd": 2446139 },
                "place": { "name": "Hannover, Niedersachsen, Deutschland", "short": "…", "lat": null, "lng": null } },
     "death": null,
+    "call": "", "chr": null, "buri": null, "occupation": "Bauingenieur",
     "thumb": "<base>/index.php?route=/tree/falkenrath/media-thumbnail&xref=X88&…",
     "url": "<base>/index.php?route=/tree/falkenrath/individual/I1/Jonas-Falkenrath"
   },
