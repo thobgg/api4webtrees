@@ -13,6 +13,8 @@ can tell exactly which of them a server has.
   than birth and death without fetching each person.
 - **Level 15 – `Pedigree?siblings=1`**: each ancestor carries `siblings`, the other children of the family its parents
   come from. For ancestor charts with siblings. Without the parameter the answer is unchanged.
+- **Level 16 – `Pedigree` allows 12 generations** (was 7), for large ancestor charts. `generations` in the answer
+  reports the depth actually delivered, so a client sees when an older module stopped at 7.
 
 ## 1.8.0 – 2026-09-26
 API level 12. New fields only; existing answers keep all their fields.

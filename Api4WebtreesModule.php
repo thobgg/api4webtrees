@@ -82,7 +82,8 @@ class Api4WebtreesModule extends AbstractModule implements ModuleCustomInterface
     // 13: Relationship (Verwandtschaftswege zweier Personen wie im Diagramm "Verwandtschaft")
     // 14: call, chr, buri, occupation je Person (Kurzfassung)
     // 15: Pedigree?siblings=1 - je Vorfahr die Geschwister
-    public const int    API_VERSION = 15;
+    // 16: Pedigree bis 12 Generationen (war 7)
+    public const int    API_VERSION = 16;
 
     /** Benutzereinstellung je Baum: die Merkliste als Liste von Personenkennungen. */
     private const string BOOKMARKS_PREF = 'api4webtrees_bookmarks';
@@ -117,7 +118,7 @@ class Api4WebtreesModule extends AbstractModule implements ModuleCustomInterface
     private const int PAGE_SIZE           = 50;
     private const int MEDIA_PAGE_SIZE     = 60;
     private const int PLACES_LIMIT        = 20;
-    private const int MAX_PEDIGREE_GEN    = 7;
+    private const int MAX_PEDIGREE_GEN    = 12;
     private const int MAX_DESCENDANTS_GEN = 10;
     // Relationship: so viele gleich kurze Wege hoechstens (Ahnenschwund kann viele ergeben)
     private const int MAX_RELATIONSHIP_PATHS = 5;
