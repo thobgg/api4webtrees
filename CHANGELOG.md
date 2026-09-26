@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.9.2 – unreleased
+## 1.9.2 – 2026-09-26
 API level 17, unchanged. **Apps at home without HTTPS** (for nas4webtrees, where webtrees runs under
 `http://<nas-ip>:8095`): the page “App” now offers the connect button and QR code also over `http://` inside the home
 network – private, loopback and link-local addresses (`10/8`, `172.16/12`, `192.168/16`, `127/8`, `169.254/16`,
