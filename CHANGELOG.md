@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.9.1 – 2026-09-26
+API level 17, unchanged. **Bug fix:** fact values over several lines – above all notes with `CONT` lines – lost
+their line breaks, so the lines ran together (“…seines Vaters.In der Familie…”). `facts[].value` now keeps line
+breaks as `\n` and paragraphs as a blank line; single-line values are unchanged. Found by the desktop client's book.
+
 ## 1.9.0 – 2026-09-26
 New fields and actions only; existing answers keep all their fields. Each addition raises the API level, so a client
 can tell exactly which of them a server has.

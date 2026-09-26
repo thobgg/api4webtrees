@@ -23,7 +23,10 @@ use Fisharebest\Webtrees\Validator;
 use Illuminate\Support\Collection;
 use Psr\Http\Message\ServerRequestInterface;
 
+use function array_map;
 use function class_exists;
+use function explode;
+use function implode;
 use function html_entity_decode;
 use function in_array;
 use function preg_match;
@@ -419,7 +422,8 @@ trait JsonBuilders
             return '';
         }
 
-        return $this->plain(Registry::elementFactory()->make($fact->tag())->value($value, $tree));
+        // Mit Zeilen: Notizen und andere Texte ueber mehrere Zeilen (CONT) behalten ihre Umbrueche.
+        return $this->plainLines(Registry::elementFactory()->make($fact->tag())->value($value, $tree));
     }
 
     /**
@@ -493,6 +497,21 @@ trait JsonBuilders
         $pos = strrpos($tag, ':');
 
         return $pos === false ? $tag : substr($tag, $pos + 1);
+    }
+
+    /**
+     * Wie plain(), aber Zeilenumbrueche und Absaetze bleiben erhalten. webtrees liefert mehrzeilige Texte als HTML
+     * (<br>, <p>); ohne diesen Schritt klebten die Zeilen aneinander ("seines Vaters.In der Familie ...").
+     */
+    private function plainLines(string $html): string
+    {
+        $html  = (string) preg_replace('/<br\s*\/?>/i', "\n", $html);
+        $html  = (string) preg_replace('/<\/(p|div|li|h[1-6]|blockquote|tr)>/i', "\n\n", $html);
+        $lines = explode("\n", html_entity_decode(strip_tags($html), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+        $lines = array_map(fn (string $line): string => $this->plain($line), $lines);
+
+        // Hoechstens eine Leerzeile zwischen Absaetzen
+        return trim((string) preg_replace('/\n{3,}/', "\n\n", implode("\n", $lines)));
     }
 
     private function plain(string $html): string
