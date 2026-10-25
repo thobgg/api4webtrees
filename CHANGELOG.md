@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+**Level n – `POST MediaRotate`:** turns the image of a media object by 90°, 180° or 270° clockwise – for a photo taken the
+wrong way round. GEDCOM has no rotation, so the file is overwritten with the turned image; the crop of every link to it turns
+along, so each marked frame stays on the same face. Nothing is turned while a link with a crop can't be changed by the user.
+
 **API levels 38 to 40.** **Level 38 – Crop of a media link** (GEDCOM 7 `2 CROP` with `TOP`, `LEFT`, `HEIGHT`, `WIDTH` in pixels): the part of
 an image that shows one person – each linked person can have their own part of the same group photo, the file stays
 unchanged. `Individual` gives each media entry `crop` (`{top, left, height, width}` or `null`); the new `POST MediaCrop`

@@ -12672,6 +12672,78 @@
     }
    }
   },
+  "/module/_api4webtrees_/MediaRotate/{tree}": {
+   "post": {
+    "operationId": "postMediaRotate",
+    "summary": "Turn the image of a media object clockwise by 90°, 180° or 270° (`quarterTurns` 1–3).",
+    "description": "Turn the image of a media object clockwise by 90°, 180° or 270° (`quarterTurns` 1–3). The file is overwritten with the turned image – GEDCOM has no rotation – and the crop (`2 CROP`) of every link to it turns along, so each marked frame stays on the same face; `turnedCrops` counts them. Needs the right to upload media. Errors `invalid-turns`, `not-an-image`, `upload-not-allowed`, `crop-locked` (a link with a crop the user may not change – nothing is turned).",
+    "x-api-level": "n",
+    "x-minimum-role": "editor",
+    "parameters": [
+     {
+      "name": "tree",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      },
+      "description": "Tree name (`Info.trees[].name`)"
+     },
+     {
+      "name": "xref",
+      "in": "query",
+      "required": true,
+      "description": "Media object identifier, e.g. `M45`",
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "X-CSRF-TOKEN",
+      "in": "header",
+      "required": true,
+      "schema": {
+       "type": "string"
+      },
+      "description": "`Info.csrf`"
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Result – or an error object (`ok: false`, see `Error`)",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "ok": {
+           "type": "boolean"
+          },
+          "pending": {
+           "type": "boolean"
+          },
+          "turnedCrops": {
+           "type": "integer"
+          },
+          "xref": {
+           "type": "string"
+          }
+         },
+         "required": [
+          "ok",
+          "pending",
+          "turnedCrops",
+          "xref"
+         ],
+         "additionalProperties": false
+        }
+       }
+      }
+     }
+    },
+    "x-body": "`{quarterTurns: 1 | 2 | 3}`"
+   }
+  },
   "/module/_api4webtrees_/MediaCrop/{tree}": {
    "post": {
     "operationId": "postMediaCrop",
@@ -13349,6 +13421,7 @@
        "already-undone",
        "chart-disabled",
        "citation-not-found",
+       "crop-locked",
        "fact-locked",
        "fact-not-found",
        "family-locked",
@@ -13363,6 +13436,7 @@
        "invalid-quality",
        "invalid-relation",
        "invalid-role",
+       "invalid-turns",
        "invalid-type",
        "invalid-value",
        "link-exists",
@@ -13376,6 +13450,7 @@
        "no-portrait",
        "not-a-baptism",
        "not-a-task",
+       "not-an-image",
        "not-editable",
        "not-editor",
        "not-found",

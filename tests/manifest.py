@@ -225,6 +225,12 @@ ROUTEN = [
      "not JSON. `thumb` points here whenever that link has a crop (not when webtrees adds a watermark for the user); `crop` "
      "in the address changes with the crop. Error `no-portrait` when there is no cropped main photo.",
      [XREF, P("crop", "Changes with the crop, so caches never show an old part")], None),
+    ("post", "MediaRotate", True, "n", "editor",
+     "Turn the image of a media object clockwise by 90°, 180° or 270° (`quarterTurns` 1–3). The file is overwritten with the "
+     "turned image – GEDCOM has no rotation – and the crop (`2 CROP`) of every link to it turns along, so each marked frame "
+     "stays on the same face; `turnedCrops` counts them. Needs the right to upload media. Errors `invalid-turns`, "
+     "`not-an-image`, `upload-not-allowed`, `crop-locked` (a link with a crop the user may not change – nothing is turned).",
+     [P("xref", "Media object identifier, e.g. `M45`", pflicht=True)], "`{quarterTurns: 1 | 2 | 3}`"),
     ("post", "MediaCrop", True, 38, "editor",
      "Set the crop of a media link (GEDCOM 7 `2 CROP`, pixels): the part of the image that shows this record – each "
      "linked individual can have their own part of the same image, the file stays unchanged. Links the media object "
@@ -438,6 +444,7 @@ def sammeln(u):
 
     for benutzer in (None, "mitglied", "bearbeiter", "admin"):
         merken("get", "MediaObject", u.sitzung(benutzer).get("MediaObject", "testbaum", xref=m))
+    merken("post", "MediaRotate", admin.post("MediaRotate", "testbaum", {"quarterTurns": 2}, xref=m))
     merken("post", "MediaCrop", admin.post("MediaCrop", "testbaum", {"media": m, "crop": {"top": 0, "left": 0, "height": 1, "width": 1}}, xref="I1"))
     merken("post", "UnlinkMedia", admin.post("UnlinkMedia", "testbaum", {"media": m}, xref="I1"))
     merken("post", "Reject", admin.post("Reject", "testbaum", {}, xref="I2"))

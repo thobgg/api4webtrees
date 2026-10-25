@@ -16,12 +16,17 @@ use Fisharebest\Webtrees\Contracts\UserInterface;
 use Fisharebest\Webtrees\Individual;
 use Fisharebest\Webtrees\Registry;
 use Fisharebest\Webtrees\Tree;
+use Fisharebest\Webtrees\Services\LinkedRecordService;
 use Fisharebest\Webtrees\Services\MediaFileService;
 use Fisharebest\Webtrees\Services\PendingChangesService;
 use Fisharebest\Webtrees\Validator;
+use Intervention\Image\Drivers\Gd\Driver as GdDriver;
+use Intervention\Image\Drivers\Imagick\Driver as ImagickDriver;
+use Intervention\Image\ImageManager;
 use League\Flysystem\FilesystemException;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Throwable;
 
 use function array_column;
 use function array_key_exists;
@@ -38,6 +43,8 @@ use function array_keys;
 use function array_filter;
 use function class_exists;
 use function explode;
+use function extension_loaded;
+use function is_int;
 use function implode;
 use function in_array;
 use function is_array;
@@ -1394,6 +1401,108 @@ trait WriteActions
         $record->updateRecord(implode("\n", $lines), true);
 
         return $this->written($record);
+    }
+
+    /**
+     * Bild eines Medienobjekts im Uhrzeigersinn drehen: ?xref=M45   Rumpf: { quarterTurns: 1 | 2 | 3 }
+     * Die Datei wird gedreht ueberschrieben (GEDCOM kennt keine Drehung); die Ausschnitte (2 CROP) aller Verweise auf
+     * das Medium drehen mit, damit jeder Rahmen auf demselben Gesicht bleibt. Ist ein Verweis mit Ausschnitt fuer den
+     * Benutzer nicht aenderbar, wird nichts gedreht (crop-locked).
+     */
+    public function postMediaRotateAction(ServerRequestInterface $request): ResponseInterface
+    {
+        $tree   = Validator::attributes($request)->tree();
+        $media  = Registry::mediaFactory()->make($this->xref($request), $tree);
+        $denied = $this->denyEdit($media);
+
+        if ($denied !== null) {
+            return $denied;
+        }
+
+        if (!Auth::canUploadMedia($tree, Auth::user())) {
+            return $this->error(403, 'upload-not-allowed');
+        }
+
+        $turns = $this->body($request)['quarterTurns'] ?? null;
+
+        if (!is_int($turns) || $turns < 1 || $turns > 3) {
+            return $this->error(400, 'invalid-turns');
+        }
+
+        $media_file = $media->firstImageFile();
+
+        if ($media_file === null || $media_file->isExternal()) {
+            return $this->error(400, 'not-an-image');
+        }
+
+        // Alle Verweise mit Ausschnitt - erst pruefen, dann schreiben: ein halb gedrehtes Bild waere schlimmer als keins.
+        $linked  = Registry::container()->get(LinkedRecordService::class);
+        $records = $linked->linkedIndividuals($media)->merge($linked->linkedFamilies($media));
+        $cropped = [];
+
+        foreach ($records as $record) {
+            foreach ($this->mediaLinks($record, $media->xref()) as $link) {
+                if (str_contains($link->gedcom(), "\n2 CROP")) {
+                    if (!$record->canEdit() || !$link->canEdit()) {
+                        return $this->error(403, 'crop-locked');
+                    }
+
+                    $cropped[] = [$record, $link];
+                }
+            }
+        }
+
+        $filesystem = $tree->mediaFilesystem();
+        $path       = $media_file->filename();
+
+        try {
+            $manager = extension_loaded('imagick') ? new ImageManager(new ImagickDriver()) : new ImageManager(new GdDriver());
+            // Intervention dreht gegen den Uhrzeigersinn; die Ausrichtung der Kamera (EXIF) wendet es beim Lesen an.
+            $image  = $manager->read($filesystem->readStream($path));
+            $width  = $image->width();
+            $height = $image->height();
+            $filesystem->write($path, $image->rotate(-90 * $turns)->encodeByMediaType($media_file->mimeType(), quality: 90)->toString());
+        } catch (Throwable) {
+            return $this->error(400, 'not-an-image');
+        }
+
+        foreach ($cropped as [$record, $link]) {
+            $crop  = self::cropJson($link->gedcom()) ?? [];
+            $lines = '';
+
+            foreach (self::turnedCrop($crop, $width, $height, $turns) as $tag => $value) {
+                $lines .= "\n3 " . $tag . ' ' . $value;
+            }
+
+            $gedcom = GedcomText::replaceSubrecords("\n" . $link->gedcom(), 2, 'CROP', "\n2 CROP" . $lines);
+            $record->updateFact($link->id(), substr($gedcom, 1), true);
+        }
+
+        return $this->written($media, ['turnedCrops' => count($cropped)]);
+    }
+
+    /**
+     * Ein Ausschnitt (Pixel) nach Drehen eines Bildes von $width x $height um $turns Vierteldrehungen im Uhrzeigersinn.
+     * Fehlende Angaben wie GEDCOM 7: 0 bzw. bis zum Bildrand.
+     *
+     * @param array<string,int|null> $crop
+     *
+     * @return array{TOP:int,LEFT:int,HEIGHT:int,WIDTH:int}
+     */
+    public static function turnedCrop(array $crop, int $width, int $height, int $turns): array
+    {
+        $left = $crop['left'] ?? 0;
+        $top  = $crop['top'] ?? 0;
+        $w    = $crop['width'] ?? $width - $left;
+        $h    = $crop['height'] ?? $height - $top;
+
+        for ($i = 0; $i < $turns % 4; $i++) {
+            // Eine Vierteldrehung: die linke Kante wird die obere, die Hoehe die Breite.
+            [$left, $top, $w, $h] = [$height - $top - $h, $left, $h, $w];
+            [$width, $height]     = [$height, $width];
+        }
+
+        return ['TOP' => $top, 'LEFT' => $left, 'HEIGHT' => $h, 'WIDTH' => $w];
     }
 
     /**

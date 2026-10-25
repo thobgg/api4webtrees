@@ -90,6 +90,15 @@ def leseaufrufe(baum="testbaum"):
     return aufrufe
 
 
+def api_modul_turned_crop(crop, breite, hoehe, vierteldrehungen):
+    """WriteActions::turnedCrop() ueber php -r - die Rechnung des Moduls selbst, ohne Server."""
+    code = (
+        f"require '{umgebung.MODUL}/src/WriteActions.php'; "
+        "final class T { use \\Api4Webtrees\\WriteActions; } "
+        f"echo json_encode(T::turnedCrop(json_decode('{json.dumps(crop)}', true), {breite}, {hoehe}, {vierteldrehungen}));")
+    return json.loads(subprocess.run(["php", "-r", code], capture_output=True, text=True, check=True).stdout)
+
+
 class Lecktest(unittest.TestCase):
     def pruefen(self, benutzer):
         s = U.sitzung(benutzer)
@@ -946,6 +955,51 @@ class Ausschnitt(unittest.TestCase):
         self.assertEqual("no-portrait", s.get("Portrait", "gedcoml", xref="I2").json.get("error"))
         s.post("UnlinkMedia", "gedcoml", {"media": m}, xref="I2")
 
+
+    def test_drehen(self):
+        """Stufe n: Bild drehen - die Datei dreht sich, die Ausschnitte aller Verweise drehen mit."""
+        import struct
+        import zlib
+        s = U.sitzung("admin")
+        # 100 x 60: links rot, rechts blau
+        zeile = b"\x00" + (b"\xff\x00\x00" * 50) + (b"\x00\x00\xff" * 50)
+        def block(art, daten):
+            return struct.pack(">I", len(daten)) + art + daten + struct.pack(">I", zlib.crc32(art + daten) & 0xffffffff)
+        png = (b"\x89PNG\r\n\x1a\n" + block(b"IHDR", struct.pack(">IIBBBBB", 100, 60, 8, 2, 0, 0, 0))
+               + block(b"IDAT", zlib.compress(zeile * 60)) + block(b"IEND", b""))
+        rumpf, art = manifest.multipart({"title": "Rot und Blau"}, ("drehen.png", png, "image/png"))
+        req = urllib.request.Request(s.url("/module/_api4webtrees_/Media/gedcoml", xref="I2"), data=rumpf, method="POST")
+        req.add_header("Content-Type", art)
+        req.add_header("X-CSRF-TOKEN", s.csrf)
+        m = s._senden(req).json["media"]
+        # Rahmen um die linke (rote) Haelfte
+        s.post("MediaCrop", "gedcoml", {"media": m, "crop": {"top": 0, "left": 0, "height": 60, "width": 50}}, xref="I2")
+
+        for falsch in (0, 4, "1", None):
+            r = s.post("MediaRotate", "gedcoml", {"quarterTurns": falsch}, xref=m)
+            self.assertEqual("invalid-turns", r.json.get("error"), falsch)
+        self.assertNotEqual(True, (U.sitzung(None).post("MediaRotate", "gedcoml", {"quarterTurns": 1}, xref=m).json or {}).get("ok"))
+
+        a = s.post("MediaRotate", "gedcoml", {"quarterTurns": 1}, xref=m).json
+        self.assertEqual((True, 1), (a.get("ok"), a.get("turnedCrops")), a)
+        # Im Uhrzeigersinn: 60 x 100, die rote linke Haelfte liegt jetzt oben - und der Rahmen mit ihr
+        pfad = s.get("MediaObject", "gedcoml", xref=m).json["files"][0]["path"]
+        datei = os.path.join(umgebung.WT, "data", "media", pfad)
+        bild = subprocess.run(["php", "-r", f"$i = imagecreatefrompng('{datei}'); echo imagesx($i), ' ', imagesy($i), ' ', "
+                               "dechex(imagecolorat($i, 30, 10)), ' ', dechex(imagecolorat($i, 30, 90));"],
+                              capture_output=True, text=True, check=True).stdout.split()
+        self.assertEqual(["60", "100", "ff0000", "ff"], bild)
+        rahmen = next(x for x in s.get("Individual", "gedcoml", xref="I2").json["media"] if x["xref"] == m)["crop"]
+        self.assertEqual({"top": 0, "left": 0, "height": 50, "width": 60}, rahmen)
+        s.post("UnlinkMedia", "gedcoml", {"media": m}, xref="I2")
+
+    def test_ausschnitt_drehen(self):
+        """Stufe n: Ausschnitte drehen rechnerisch richtig, auch mit fehlenden Angaben und mehreren Vierteldrehungen."""
+        dreh = api_modul_turned_crop
+        self.assertEqual({"TOP": 0, "LEFT": 0, "HEIGHT": 50, "WIDTH": 60}, dreh({"top": 0, "left": 0, "height": 60, "width": 50}, 100, 60, 1))
+        self.assertEqual({"TOP": 0, "LEFT": 50, "HEIGHT": 60, "WIDTH": 50}, dreh({"top": 0, "left": 0, "height": 60, "width": 50}, 100, 60, 2))
+        self.assertEqual({"TOP": 50, "LEFT": 0, "HEIGHT": 50, "WIDTH": 60}, dreh({"top": 0, "left": 0, "height": 60, "width": 50}, 100, 60, 3))
+        self.assertEqual({"TOP": 0, "LEFT": 0, "HEIGHT": 100, "WIDTH": 60}, dreh({"top": None, "left": None, "height": None, "width": None}, 100, 60, 1))
 
 class Zugang(unittest.TestCase):
     """Stufe 36: wer ein Ereignis, eine Person, eine Familie sehen darf - fuer Buecher, die weitergegeben werden (Issue 21)."""
