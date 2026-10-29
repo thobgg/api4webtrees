@@ -166,10 +166,16 @@ von Medienobjekten, Startperson festlegen.
 bleiben ab jetzt selten; Änderungen und Fehlerbehebungen werden gesammelt, Pull Requests ohne sofortiges Release gemergt.
 
 **Kompatibilität:** Die Schnittstelle wächst nur. Jedes Release mit neuen Routen oder Feldern erhöht die **API-Stufe**
-(`apiVersion` in `Info`, heute 30); bestehende Routen, Parameter und Felder behalten Name, Typ und Bedeutung. Ein Client
+(`apiVersion` in `Info`, heute 41); bestehende Routen, Parameter und Felder behalten Name, Typ und Bedeutung. Ein Client
 für Stufe N läuft mit jedem Modul ab Stufe N, und ein älterer Client läuft mit einem neueren Modul weiter, er sieht die
 neuen Felder nur nicht. Die Tests prüfen jede Antwort gegen das dokumentierte Schema, ein Feld kann also nicht unbemerkt
 verschwinden. Müsste sich je etwas unverträglich ändern, wäre es eine neue Route, nie eine geänderte.
+
+Die Schnittstelle ist auch unabhängig davon, welche GEDCOM-Fassung der Server speichert: Daten, Tags und Verweise kommen
+in derselben Form, ob der Baum GEDCOM 5.5.1 (webtrees 2.2/2.3) oder GEDCOM 7.0 ist. Der Beweis ist die 2.x-Linie
+[api4webtrees-gedcom7-lab](https://github.com/thobgg/api4webtrees-gedcom7-lab) für
+[webtrees-gedcom7-lab](https://github.com/thobgg/webtrees-gedcom7-lab), einen Versuch, webtrees GEDCOM 7.0 nativ speichern
+zu lassen: dieselben Routen, dieselben Felder, gemeinsame API-Stufen, und wtAnd läuft gegen beide ohne Änderung.
 
 **Apps auf der Seite „App“:** Jeder Client kann die Schnittstelle mit der normalen Anmeldung benutzen, nichts an den
 JSON-Endpunkten, Rechten oder dem Datenschutz ist an eine App gebunden. Die Seiten „App“ und „Verbinden“, der Hinweis

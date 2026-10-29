@@ -201,6 +201,12 @@ against the documented schema, so a field cannot disappear unnoticed. Where a li
 sizes), the answer reports what was actually delivered. Should something ever have to change incompatibly, it would
 be a new route, never a changed one.
 
+The interface is also independent of the GEDCOM version the server stores: dates, tags and links come in the same form
+whether the tree is GEDCOM 5.5.1 (webtrees 2.2/2.3) or GEDCOM 7.0. The proof is the 2.x line
+[api4webtrees-gedcom7-lab](https://github.com/thobgg/api4webtrees-gedcom7-lab) for
+[webtrees-gedcom7-lab](https://github.com/thobgg/webtrees-gedcom7-lab), an experiment in which webtrees stores GEDCOM 7.0
+natively: same routes, same fields, shared API levels, and wtAnd runs against both without a change.
+
 ### Apps on the “App” page
 
 Any client can use the interface with the normal sign-in above – nothing in the JSON endpoints, rights or privacy is
