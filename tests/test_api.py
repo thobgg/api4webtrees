@@ -1513,6 +1513,9 @@ class Schreiben(unittest.TestCase):
         self.assertIn("webtreesand://connect?", android)
         self.assertIn("github.com/thobgg/api4webtrees", android)
         self.assertNotIn("noch kein eigenes Programm", android)
+        # Pro Geraet ist eine App offen (Apps.php: open): wtAnd aufgeklappt, webtrees mobile als Zeile darunter
+        self.assertNotIn("wtAnd</summary>", android)
+        self.assertIn("webtrees mobile</summary>", android)
 
         windows = seite("Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
         self.assertLess(windows.index("wtWin"), windows.index("wtAnd"))
@@ -1526,6 +1529,8 @@ class Schreiben(unittest.TestCase):
         self.assertLess(iphone.index("webtrees mobile"), iphone.index("wtAnd"))
         # Die fremde App hat kein Logo und nicht den Satz des Modulautors - der steht erst bei wtAnd darunter
         self.assertLess(iphone.index("webtrees mobile"), iphone.index("gemeinsam entwickelt"))
+        self.assertNotIn("webtrees mobile</summary>", iphone)
+        self.assertIn("wtAnd</summary>", iphone)
 
         mac = seite("Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0)")
         self.assertNotIn("noch kein eigenes Programm", mac)

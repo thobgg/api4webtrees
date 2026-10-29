@@ -138,7 +138,8 @@ final class Apps
 
     /**
      * Fuer ein Geraet sortiert: passende Apps zuerst (eigene vor fremden), dann die uebrigen. 'matches' sagt je App,
-     * ob sie zum Geraet passt, 'own', ob sie vom Modulautor ist, 'open', ob sie aufgeklappt gezeigt wird.
+     * ob sie zum Geraet passt, 'own', ob sie vom Modulautor ist, 'open', ob sie aufgeklappt gezeigt wird: die erste
+     * passende App (und jede mit 'always'), die uebrigen als eine Zeile eingeklappt - pro Geraet ist eine App offen.
      *
      * @param list<array<string,mixed>> $apps
      *
@@ -151,12 +152,21 @@ final class Apps
         foreach ($apps as $app) {
             $matches = in_array($device, $app['devices'], true);
             $own     = $app['author'] === self::OWNER;
-            $app    += ['matches' => $matches, 'own' => $own, 'open' => $matches || $app['always']];
+            $app    += ['matches' => $matches, 'own' => $own, 'open' => $app['always']];
 
             $groups[($matches ? 0 : 2) + ($own ? 0 : 1)][] = $app;
         }
 
-        return array_merge(...$groups);
+        $sorted = array_merge(...$groups);
+
+        foreach ($sorted as $i => $app) {
+            if ($app['matches']) {
+                $sorted[$i]['open'] = true;
+                break;
+            }
+        }
+
+        return $sorted;
     }
 
     /**

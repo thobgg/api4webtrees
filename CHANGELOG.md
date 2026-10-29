@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+**“App” page:** only the first app for the visitor's device is open, the others fold to one line each – as documented
+since 1.10. Before, every app for the device was open, which made the page long on Android with two apps.
 **Search finds nicknames:** `GET Individuals?q=` also matches the nickname (`2 NICK`) of a name – “Piet” finds Pieter
 Bakker when his nickname is only recorded as NICK, as Dutch call names usually are. webtrees' own name index does not
 contain nicknames, so the module checks the GEDCOM text as well. No new field or parameter (app4webtrees #24).
