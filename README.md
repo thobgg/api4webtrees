@@ -194,7 +194,7 @@ The interface is complete since level 30 (1.18): every route needed for everyday
 rare from now on – changes and fixes are collected, pull requests are merged without an immediate release.
 
 The interface only grows. Every release that adds routes or fields raises the **API level** (`apiVersion` in `Info`,
-40 today); existing routes, parameters and fields keep their names, types and meaning. A client built for level N works
+41 today); existing routes, parameters and fields keep their names, types and meaning. A client built for level N works
 with every module from level N on, and an older client keeps working with a newer module – it simply does not see
 the new fields. New fields are optional, so clients should ignore what they do not know. The tests check every answer
 against the documented schema, so a field cannot disappear unnoticed. Where a limit is raised (generations, page
@@ -244,7 +244,7 @@ user may not see comes with `private: true` and no name; one whose name they may
 
 | Action | Tree | Parameters | Content |
 | - | - | - | - |
-| `Info` | – | – | versions, `api` level, user (level n: with `language`, the language chosen under “My account”), visible trees with role, rights, number of individuals and (for moderators) of records with pending changes, `maxUpload` in bytes, CSRF token, `trees[].lastChange` (number of the latest change in the tree: a different value than last time means “reload”; compare for equality only, a new GEDCOM import resets it) |
+| `Info` | – | – | versions, `api` level, user (level 41: with `language`, the language chosen under “My account”), visible trees with role, rights, number of individuals and (for moderators) of records with pending changes, `maxUpload` in bytes, CSRF token, `trees[].lastChange` (number of the latest change in the tree: a different value than last time means “reload”; compare for equality only, a new GEDCOM import resets it) |
 | `Individuals` | yes | `q`, `page`, `scope?` | people by sort name, 50 per page, `nextPage`. `q` searches names; with `scope=all` every word must appear somewhere in the person's visible facts (`Huber Wien` finds the Hubers with Wien as birth place, residence …); error `too-many-results` when webtrees refuses the search |
 | `Individual` | yes | `xref`, `relativeTo?` | person, facts (`known: false` marks vendor tags webtrees has no definition for), parent and spouse families, `stepFamilies` (the parents' families with other partners, i.e. half-siblings; `parent` names the shared parent), media, `relationship` to `relativeTo` (default: the user's own record), e.g. “great-grandmother”. Each fact date carries `gedcom` (`"ABT 1850"`) next to the display `text`, for pre-filling an edit form; each media entry carries `factId`, `primary` (the photo webtrees shows for the person) and `crop` (the GEDCOM 7 crop of this link, `{top, left, height, width}` in pixels, or `null`). The person and everyone in these families carry `hasParents`, `partnersCount`, `childrenCount`. Level 19: `associatedIn` – where this person is a godparent, witness … (the other person's or family's event with `record`, `recordType`, `name`, `tag`, `label`, `factId`, `date`, `place`, `rela`, `role`, `label2`, `level1`, `url`, for families `husband` and `wife` as xrefs of the visible partners; only visible records and facts, sorted by date) |
 | `Family` | yes | `xref` | family with facts, children, media |

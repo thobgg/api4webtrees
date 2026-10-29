@@ -1425,7 +1425,7 @@ class Schreiben(unittest.TestCase):
         self.assertEqual(("M", [("männlich", False)]), ansicht(ed))
 
     def test_sprache_des_kontos_in_info(self):
-        """Stufe n: Info.user.language ist die unter "Mein Konto" gewaehlte Sprache - leer fuer Gaeste."""
+        """Stufe 41: Info.user.language ist die unter "Mein Konto" gewaehlte Sprache - leer fuer Gaeste."""
         self.assertEqual("", U.sitzung().info()["user"]["language"])
         user_id = umgebung.sql("SELECT user_id FROM wt_user WHERE user_name = 'mitglied'")[0][0]
         try:

@@ -1,6 +1,7 @@
 # Changelog
 
-## Unreleased
+## 1.24.0 – 2026-10-29
+API level 41.
 **“App” page:** only the first app for the visitor's device is open, the others fold to one line each – as documented
 since 1.10. Before, every app for the device was open, which made the page long on Android with two apps.
 **Search finds nicknames:** `GET Individuals?q=` also matches the nickname (`2 NICK`) of a name – “Piet” finds Pieter
@@ -11,7 +12,7 @@ App Store badge at the same height; it now has none, and both are equally high.
 **“App” page:** the note recommending the browser now shows on every device without an app the administrator left on
 (before only on Apple devices). It no longer names a computer or an Android phone, which may be switched off too, but
 points to the apps for other devices – and only if there are any.
-**Level n – `Info.user.language`:** the language the signed-in user chose under “My account” (`de`, `en-GB` …; empty for
+**Level 41 – `Info.user.language`:** the language the signed-in user chose under “My account” (`de`, `en-GB` …; empty for
 visitors and without a choice of their own) – so an app can start in the user's webtrees language on the first sign-in.
 
 **API levels 38 to 40.** **Level 38 – Crop of a media link** (GEDCOM 7 `2 CROP` with `TOP`, `LEFT`, `HEIGHT`, `WIDTH` in pixels): the part of

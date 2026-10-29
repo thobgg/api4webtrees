@@ -47,7 +47,7 @@ ROUTEN = [
      "longer by one list of module names per tree. From level 37 every fact has `details`: the sub-structures without a "
      "field of their own (age, cause, phone, e-mail, pedigree, transliterations …) as rows `{tag, label, value, level}`, "
      "with label and value as webtrees shows them in the language of the request – a client can show any of them "
-     "without reading GEDCOM. `sortName` shows unknown names as `…` instead of `@N.N.`/`@P.N.`. From level n "
+     "without reading GEDCOM. `sortName` shows unknown names as `…` instead of `@N.N.`/`@P.N.`. From level 41 "
      "`user.language`: the language the signed-in user chose under “My account” (`de`, `en-GB` …; empty for visitors "
      "and without a choice of their own), so a client can start in it.", [], None),
     ("get", "Individuals", True, 1, "visitor",
