@@ -8,18 +8,19 @@
 
 <p align="center">
   <a href="https://github.com/thobgg/api4webtrees/releases/latest"><img src="https://img.shields.io/badge/webtrees-module%20ZIP-1F5F99?style=for-the-badge" alt="webtrees module api4webtrees (ZIP)"></a>
+  <a href="https://github.com/thobgg/app4webtrees/releases/latest"><img src="https://img.shields.io/badge/Windows-wtWin%20.exe-0078D4?style=for-the-badge&logo=windows&logoColor=white" alt="Windows: wtWin (.exe)"></a>
   <a href="https://github.com/thobgg/app4webtrees/releases/latest"><img src="https://img.shields.io/badge/Android-wtAnd%20APK-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Android: wtAnd (APK)"></a>
   <a href="https://github.com/thobgg/app4webtrees/releases/latest"><img src="https://img.shields.io/badge/Linux-wtTux%20.deb-FCC624?style=for-the-badge&logo=linux&logoColor=black" alt="Linux: wtTux (.deb)"></a>
 </p>
 
-A [webtrees](https://webtrees.net/) module that gives the native Android app **[wtAnd](https://github.com/thobgg/app4webtrees)**
-a JSON interface for reading **and** writing. It is an ordinary custom module: it lives in
+A [webtrees](https://webtrees.net/) module that gives the apps **[wtAnd, wtWin and wtTux](https://github.com/thobgg/app4webtrees)**
+(Android, Windows, Linux) a JSON interface for reading **and** writing. It is an ordinary custom module: it lives in
 `modules_v4/`, the webtrees core is not modified.
 
-**Why:** whoever maintains the tree at the PC keeps working in webtrees as before. The rest of the family, who so far
-only had a website that is hard to use on a phone, get the tree on phone and tablet through the app: tree,
-relationships, anniversaries and photos. Changes made in the app, such as a photo of a gravestone or a corrected date,
-arrive as pending changes in the same webtrees installation.
+**Why:** whoever maintains the tree keeps working in webtrees as before – or in wtWin, a classic genealogy program on
+the same data. The rest of the family, who so far only had a website that is hard to use on a phone, get the tree on
+phone and tablet through wtAnd: tree, relationships, anniversaries and photos. Changes made in an app, such as a photo
+of a gravestone or a corrected date, arrive as pending changes in the same webtrees installation.
 
 | | |
 | - | - |
@@ -28,15 +29,20 @@ arrive as pending changes in the same webtrees installation.
 | Access | read and write, always with the rights of the signed-in webtrees user |
 | License | GPL-3.0 |
 
-## The app: wtAnd
+## The apps: wtAnd, wtWin and wtTux
 
-The module is the server side of **[wtAnd](https://github.com/thobgg/app4webtrees)**, a native Android app
-(Kotlin, no WebView) for phone and tablet. [Download the APK](https://github.com/thobgg/app4webtrees/releases/latest)
-(signed). Outside the Play Store, Android asks once to allow your browser to install apps.
+The module is the server side of the apps in **[app4webtrees](https://github.com/thobgg/app4webtrees)**: **wtAnd**, a
+native Android app (Kotlin, no WebView) for phone and tablet, and **wtWin** and **wtTux**, the same program for
+Windows and Linux (wtMac as a test build). [Downloads](https://github.com/thobgg/app4webtrees/releases/latest): APK,
+Windows installer, Linux `.deb`, all signed. Outside the Play Store, Android asks once to allow your browser to install apps.
 
-| Tablet: tree and profile side by side | Phone: the profile as a timeline |
+| Phone: the tree | The profile as a timeline | Where the person lived |
+| - | - | - |
+| <img src="docs/app-handy-baum.png" alt="Tree on a phone" width="260"> | <img src="docs/app-handy.png" alt="Profile as a timeline" width="260"> | <img src="docs/app-handy-karte.png" alt="Map of the person's places" width="260"> |
+
+| PC: wtWin and wtTux | Tablet: tree and profile side by side |
 | - | - |
-| ![Tree and profile side by side](docs/app-tablet.png) | ![Profile on a phone](docs/app-handy.png) |
+| <img src="docs/app-pc.png" alt="wtWin: navigator with four generations" width="560"> | <img src="docs/app-tablet.png" alt="Tree and profile side by side" width="400"> |
 
 - **Tree:** hourglass view with ancestors, partners, children and grandchildren, siblings on request;
   pan and zoom freely, unfold branches upwards, make any person the centre.
@@ -45,6 +51,9 @@ The module is the server side of **[wtAnd](https://github.com/thobgg/app4webtree
 - **Editing:** add, change and delete events, add relatives with the “+” on any card, take or pick photos and attach
   them to a person, resized to fit the server's upload limit.
 - **Anniversaries** of the coming days, with a daily reminder if you like; moderators accept or reject pending changes in the app.
+- **On the PC:** wtWin and wtTux work like a classic genealogy program on the same tree – navigator and person sheet,
+  lists, charts and printing, books for the family (family book, local heritage book), tools such as a date
+  calculator, and the GEDCOM-L details German programs expect.
 - **Connect with one tap:** the “App” page in webtrees hands server, tree and a one-time code to the app.
 
 German and English; the labels of the server come in the language of the app. Whatever is not native yet opens as a
