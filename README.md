@@ -94,6 +94,8 @@ visitor's device first (own apps before others); only that app is open, the rest
 shows webtrees mobile by Andreas Scharf (App Store); a device without a matching app (none for it, or switched off in the settings) gets a note recommending the
 browser. Each app has two steps:
 
+![The “App” page at a Linux PC: wtTux open with download and connect, the other apps folded below](docs/app-seite.png)
+
 1. **Install:** a button to the newest download (`.exe`, `.deb` or APK), for the phone also as a QR code.
 2. **Connect your account – nothing to type, the password never reaches the device:**
    - **PC:** the button *Connect with wtWin* puts the connect link with a one-time code on the clipboard and opens it

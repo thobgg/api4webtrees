@@ -97,6 +97,8 @@ zuerst (eigene vor fremden); nur diese App ist aufgeklappt, die übrigen stehen 
 zeigt sie webtrees mobile von Andreas Scharf (App Store); ein Gerät ohne passende App (keine dafür, oder in den Einstellungen
 abgeschaltet) bekommt einen Hinweis auf den Browser. Je App zwei Schritte:
 
+![Die Seite „App“ am Linux-PC: wtTux aufgeklappt mit Herunterladen und Verbinden, die anderen Apps eingeklappt darunter](docs/app-seite.png)
+
 1. **Installieren:** ein Knopf zur neuesten Datei (`.exe`, `.deb` oder APK), fürs Handy auch als QR-Code.
 2. **Mit dem eigenen Konto verbinden – nichts eintippen, das Passwort erreicht das Gerät nie:**
    - **PC:** Der Knopf *Mit wtWin verbinden* legt den Verbinden-Link mit einem Einmal-Code in die Zwischenablage und
