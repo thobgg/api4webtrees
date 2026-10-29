@@ -51,8 +51,9 @@ ROUTEN = [
      "`user.language`: the language the signed-in user chose under “My account” (`de`, `en-GB` …; empty for visitors "
      "and without a choice of their own), so a client can start in it.", [], None),
     ("get", "Individuals", True, 1, "visitor",
-     "List of individuals, sorted by name, 50 per page. `q` filters by name; with `scope=all` the words may appear "
-     "anywhere in the visible data (place, year, occupation …).",
+     "List of individuals, sorted by name, 50 per page. `q` filters by name – every name of a person, including "
+     "married names and the nickname (`2 NICK`); with `scope=all` the words may appear anywhere in the visible data "
+     "(place, year, occupation …).",
      [P("q", "Search words"), P("page", "Page, from 1", "integer"), P("scope", "`all`: search all visible data")], None),
     ("get", "Individual", True, 1, "visitor",
      "One individual with facts, parent/spouse/step families, media and – with `relativeTo` – the relationship "

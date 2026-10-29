@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+**Search finds nicknames:** `GET Individuals?q=` also matches the nickname (`2 NICK`) of a name – “Piet” finds Pieter
+Bakker when his nickname is only recorded as NICK, as Dutch call names usually are. webtrees' own name index does not
+contain nicknames, so the module checks the GEDCOM text as well. No new field or parameter (app4webtrees #24).
 **“App” page:** the note recommending the browser now shows on every device without an app the administrator left on
 (before only on Apple devices). It no longer names a computer or an Android phone, which may be switched off too, but
 points to the apps for other devices – and only if there are any.

@@ -204,7 +204,7 @@
    "get": {
     "operationId": "getIndividuals",
     "summary": "List of individuals, sorted by name, 50 per page.",
-    "description": "List of individuals, sorted by name, 50 per page. `q` filters by name; with `scope=all` the words may appear anywhere in the visible data (place, year, occupation …).",
+    "description": "List of individuals, sorted by name, 50 per page. `q` filters by name – every name of a person, including married names and the nickname (`2 NICK`); with `scope=all` the words may appear anywhere in the visible data (place, year, occupation …).",
     "x-api-level": 1,
     "x-minimum-role": "visitor",
     "parameters": [

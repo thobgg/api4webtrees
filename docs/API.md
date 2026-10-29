@@ -79,7 +79,7 @@ Answer fields: `api`, `baseUrl`, `csrf`, `loginForm`, `maxUpload`, `module`, `re
 
 ### `GET Individuals/{tree}`
 
-List of individuals, sorted by name, 50 per page. `q` filters by name; with `scope=all` the words may appear anywhere in the visible data (place, year, occupation …).
+List of individuals, sorted by name, 50 per page. `q` filters by name – every name of a person, including married names and the nickname (`2 NICK`); with `scope=all` the words may appear anywhere in the visible data (place, year, occupation …).
 
 | parameter | | |
 |---|---|---|

@@ -35,6 +35,7 @@ use Fisharebest\Webtrees\Site;
 use Fisharebest\Webtrees\Tree;
 use Fisharebest\Webtrees\Validator;
 use Fisharebest\Webtrees\Webtrees;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Database\Query\JoinClause;
 use Illuminate\Support\Collection;
 use Psr\Http\Message\ResponseInterface;
@@ -187,9 +188,8 @@ trait ReadActions
 
             $rows = $rows->slice($offset, self::PAGE_SIZE + 1);
         } else {
-            // Suche: auch Ehe- und Zweitnamen sollen treffen.
-            $rows = Registry::container()->get(SearchService::class)
-                ->searchIndividualNames([$tree], $words, $offset, self::PAGE_SIZE + 1);
+            // Suche: auch Ehe- und Zweitnamen sollen treffen, und der Spitzname aus "2 NICK".
+            $rows = $this->searchNames($tree, $words, $offset, self::PAGE_SIZE + 1);
         }
 
         $has_more = $rows->count() > self::PAGE_SIZE;
@@ -211,6 +211,67 @@ trait ReadActions
             'nextPage' => $has_more ? $page + 1 : null,
             'data'     => $data,
         ]);
+    }
+
+    /**
+     * Personen, deren Name jedes Suchwort enthaelt, nach Namen sortiert - wie die Namenssuche von webtrees (alle Namen
+     * einer Person, auch Ehe- und Zweitnamen), zusaetzlich mit dem Spitznamen aus "2 NICK": "Piet" findet Pieter Bakker
+     * auch dann, wenn der Spitzname nur als NICK unter dem Namen steht und nicht im Namen selbst. Der Namensindex von
+     * webtrees kennt NICK nicht, darum wird der GEDCOM-Text mitgeprueft. LIKE trifft dabei auch ueber Zeilenenden hinweg
+     * ("Jan" in einem Datum nach der NICK-Zeile), deshalb zaehlt am Ende nur, was wirklich in einem Namen oder NICK steht.
+     *
+     * @param array<string> $words
+     *
+     * @return Collection<int,Individual>
+     */
+    private function searchNames(Tree $tree, array $words, int $offset, int $limit): Collection
+    {
+        $query = DB::table('individuals')
+            ->join('name', static function (JoinClause $join): void {
+                $join
+                    ->on('name.n_file', '=', 'individuals.i_file')
+                    ->on('name.n_id', '=', 'individuals.i_id');
+            })
+            ->where('i_file', '=', $tree->id())
+            ->orderBy('n_sort')
+            ->orderBy('i_id')
+            ->select(['individuals.*']);
+
+        foreach ($words as $word) {
+            $like = '%' . addcslashes($word, '\\%_') . '%';
+            $query->where(static function (Builder $query) use ($like): void {
+                $query
+                    ->where('n_full', DB::iLike(), $like)
+                    ->orWhere('i_gedcom', DB::iLike(), "%\n2 NICK " . $like);
+            });
+        }
+
+        $normalize = I18N::language()->normalize(...);
+        $words     = array_map($normalize, $words);
+
+        return $query
+            ->offset($offset)
+            ->limit($limit)
+            ->get()
+            ->map(Registry::individualFactory()->mapper($tree))
+            ->filter(static function (Individual $individual) use ($words, $normalize): bool {
+                if (!$individual->canShowName()) {
+                    return false;
+                }
+
+                $names = array_map(static fn (array $name): string => $name['fullNN'], $individual->getAllNames());
+                $nicks = $individual->facts(['NAME'])->map(static fn (Fact $fact): string => $fact->attribute('NICK'))->all();
+                $text  = $normalize(implode("\n", array_merge($names, $nicks)));
+
+                foreach ($words as $word) {
+                    if (mb_stripos($text, $word) === false) {
+                        return false;
+                    }
+                }
+
+                return true;
+            })
+            ->values();
     }
 
     /**

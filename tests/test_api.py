@@ -513,6 +513,16 @@ class Spitznamen(unittest.TestCase):
         treffer = g.get("Individuals", "testbaum", q="Bakker").json["data"]
         self.assertEqual(['Pieter "Piet" Bakker'], [p["name"] for p in treffer])
 
+    def test_suche_nach_spitzname(self):
+        """Suche findet den Spitznamen auch, wenn er nur als 2 NICK unter dem Namen steht (App-Issue #24)."""
+        g = U.sitzung()
+        namen = lambda q: [p["name"] for p in g.get("Individuals", "testbaum", q=q).json["data"]]
+        self.assertEqual(['Pieter "Piet" Bakker'], namen("Piet"), "nur als NICK")
+        self.assertEqual(['… "Klaas" Smit'], namen("Klaas"), "NICK ohne Vornamen")
+        self.assertEqual(['Pieter "Piet" Bakker'], namen("Piet Bakker"), "Spitzname und Familienname gemischt")
+        self.assertEqual(['Johannes "Jan" de Vries'], namen("Jan"), "Spitzname im Namen selbst")
+        self.assertEqual([], namen("Pieter Klaas"), "Woerter zweier Personen treffen nicht")
+
 class StufeDreissig(unittest.TestCase):
     """Stufe 30: Merkliste in den Favoriten, Forschungsaufgaben (_TODO), Reihenfolge, Aenderungsverlauf."""
 
