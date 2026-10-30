@@ -42,7 +42,7 @@ use function trim;
 use function usort;
 
 /**
- * Stufe n - Nachrichten: webtrees' eigenes Nachrichtensystem (Block "Nachrichten" auf "Meine Seite", Tabelle message,
+ * Stufe 42 - Nachrichten: webtrees' eigenes Nachrichtensystem (Block "Nachrichten" auf "Meine Seite", Tabelle message,
  * MessageService) als JSON, damit eine App einen Posteingang hat und Datensaetze an Mitforscher teilen kann - als
  * Nachricht mit dem Link auf die Seite. Nichts Eigenes: dieselbe Tabelle, derselbe Zustelldienst (intern, per
  * E-Mail oder beides, je nach Kontaktart des Empfaengers), dieselbe Empfaengerliste wie im Block.

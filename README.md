@@ -194,7 +194,7 @@ The interface is complete since level 30 (1.18): every route needed for everyday
 rare from now on – changes and fixes are collected, pull requests are merged without an immediate release.
 
 The interface only grows. Every release that adds routes or fields raises the **API level** (`apiVersion` in `Info`,
-41 today); existing routes, parameters and fields keep their names, types and meaning. A client built for level N works
+42 today); existing routes, parameters and fields keep their names, types and meaning. A client built for level N works
 with every module from level N on, and an older client keeps working with a newer module – it simply does not see
 the new fields. New fields are optional, so clients should ignore what they do not know. The tests check every answer
 against the documented schema, so a field cannot disappear unnoticed. Where a limit is raised (generations, page
@@ -265,7 +265,7 @@ user may not see comes with `private: true` and no name; one whose name they may
 | `Portrait` | yes | `xref`, `crop?` | the main photo of the person as a square thumbnail of their crop (`2 CROP` at their link) – the image itself, not JSON; `thumb` points here when that link has a crop |
 | `MediaList` | yes | `page` | all media objects of the tree, newest first, 60 per page, each with up to three linked people |
 | `Tags` | yes | `type` (`INDI`/`FAM`) | labelled list of facts a client can offer for adding |
-| `Messages` | yes | `page?` | level n, members: the signed-in user's inbox from webtrees' own messaging (50 per page, newest first): `text` (the message alone), `url` (page it was sent from), `links` (records of this server in text or URL, resolved to `type`/`xref`, `null` when not visible), `senderName`/`senderUser` when the account still exists; plus `recipients`, the users one can write to (the list of the “Messages” block, without accounts without a contact method). `Info.user.messages` counts the inbox
+| `Messages` | yes | `page?` | level 42, members: the signed-in user's inbox from webtrees' own messaging (50 per page, newest first): `text` (the message alone), `url` (page it was sent from), `links` (records of this server in text or URL, resolved to `type`/`xref`, `null` when not visible), `senderName`/`senderUser` when the account still exists; plus `recipients`, the users one can write to (the list of the “Messages” block, without accounts without a contact method). `Info.user.messages` counts the inbox
 | `Places` | yes | `q` | editors only: up to 20 place names of the tree for suggestions while typing; `Wien, Ö` searches per level, like webtrees' own autocomplete |
 
 ### Writing (POST)
@@ -276,7 +276,7 @@ Header `X-CSRF-TOKEN: <csrf from Info>`, JSON body. Answer: `{"ok":true,"xref":"
 | Action | Parameters | Body |
 | - | - | - |
 | `Fact` | `xref` | `{factId?, tag, value?, date?, place?, note?}` or `{factId?, gedcom}` – with `factId` the fact is changed; sub-lines that are not mentioned (sources, media, coordinates) are kept |
-| `Messages` | – | `{to, subject?, body, url?}` – level n: sends a message through webtrees' MessageService as the signed-in user (internal, e-mail or both, as the recipient chose; `url` goes into the e-mail as the page it was sent from); `to` one user name or a list, no broadcast. Answer `{ok, delivered}` |
+| `Messages` | – | `{to, subject?, body, url?}` – level 42: sends a message through webtrees' MessageService as the signed-in user (internal, e-mail or both, as the recipient chose; `url` goes into the e-mail as the page it was sent from); `to` one user name or a list, no broadcast. Answer `{ok, delivered}` |
 | `MessageDelete` | – | `{ids}` – deletes own messages. Answer `{ok, deleted}` |
 | `DeleteFact` | `xref` | `{factId}` |
 | `AddIndividual` | – | `{relation: child\|spouse\|father\|mother\|none, relativeTo?, family?, given, surname, sex, birthDate?, birthPlace?, dead?, deathDate?, deathPlace?, marriageDate?, marriagePlace?, facts?}` – `facts` is a list of further facts in the form of `Fact` (`[{tag:"OCCU", value:"Gardener"}, …]`), stored in the same step as the person; if one is invalid, nothing is created |

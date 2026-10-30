@@ -1,7 +1,7 @@
 # Changelog
 
-## Unreleased
-**Level n – Messages:** webtrees' own messaging as JSON, so an app has an inbox and can share a record with a fellow
+## 1.25.0 – 2026-10-30
+**Level 42 – Messages:** webtrees' own messaging as JSON, so an app has an inbox and can share a record with a fellow
 researcher as a message with the link. `GET Messages` lists the signed-in user's inbox (50 per page): `text` is the
 message alone (webtrees stores the mail wording around it), `url` the page it was sent from, `links` every record of
 this server mentioned in text or URL, resolved to `type` and `xref` (`null` when the reader may not see it), and

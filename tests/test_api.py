@@ -1586,7 +1586,7 @@ class Schreiben(unittest.TestCase):
 
 
 class Nachrichten(unittest.TestCase):
-    """Stufe n: Posteingang, Senden und Loeschen ueber webtrees' eigenes Nachrichtensystem (Tabelle message, MessageService)."""
+    """Stufe 42: Posteingang, Senden und Loeschen ueber webtrees' eigenes Nachrichtensystem (Tabelle message, MessageService)."""
 
     @staticmethod
     def kontakt(name, art):

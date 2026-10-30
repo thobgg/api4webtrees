@@ -260,7 +260,6 @@ ROUTEN = [
      [P("xref", "Record, optional")], None),
     ("post", "Pair", False, 6, "visitor",
      "Redeem the one-time code from the page “App”: afterwards this session is signed in as that user.", [], "`{code}`"),
-    # Stufe n: Platzhalter 42, die Stufe wird beim Release vergeben (CONTRIBUTING.md)
     ("get", "Messages", True, 42, "member",
      "The signed-in user's inbox from webtrees' own messaging (table `message`, the “Messages” block on “My page”), newest "
      "first, 50 per page. webtrees stores the mail wording around the message; `text` is the message alone, `url` the page "

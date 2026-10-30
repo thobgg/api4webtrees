@@ -139,7 +139,7 @@ trait ReadActions
                 // Ab Stufe 41: die Sprache, die der Benutzer unter "Mein Konto" gewaehlt hat (de, en-GB ...) - damit eine App
                 // beim ersten Anmelden in ihr starten kann. Leer fuer Gaeste und ohne eigene Wahl.
                 'language' => Auth::check() ? $user->getPreference(UserInterface::PREF_LANGUAGE) : '',
-                // Ab Stufe n: Nachrichten im Posteingang (GET Messages) - fuer "2 Nachrichten" auf der Startseite der App.
+                // Ab Stufe 42: Nachrichten im Posteingang (GET Messages) - fuer "2 Nachrichten" auf der Startseite der App.
                 'messages' => $this->messageCount(),
             ],
             'trees'       => $trees,
