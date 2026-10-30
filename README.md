@@ -265,6 +265,7 @@ user may not see comes with `private: true` and no name; one whose name they may
 | `Portrait` | yes | `xref`, `crop?` | the main photo of the person as a square thumbnail of their crop (`2 CROP` at their link) – the image itself, not JSON; `thumb` points here when that link has a crop |
 | `MediaList` | yes | `page` | all media objects of the tree, newest first, 60 per page, each with up to three linked people |
 | `Tags` | yes | `type` (`INDI`/`FAM`) | labelled list of facts a client can offer for adding |
+| `Messages` | yes | `page?` | level n, members: the signed-in user's inbox from webtrees' own messaging (50 per page, newest first): `text` (the message alone), `url` (page it was sent from), `links` (records of this server in text or URL, resolved to `type`/`xref`, `null` when not visible), `senderName`/`senderUser` when the account still exists; plus `recipients`, the users one can write to (the list of the “Messages” block, without accounts without a contact method). `Info.user.messages` counts the inbox
 | `Places` | yes | `q` | editors only: up to 20 place names of the tree for suggestions while typing; `Wien, Ö` searches per level, like webtrees' own autocomplete |
 
 ### Writing (POST)
@@ -275,6 +276,8 @@ Header `X-CSRF-TOKEN: <csrf from Info>`, JSON body. Answer: `{"ok":true,"xref":"
 | Action | Parameters | Body |
 | - | - | - |
 | `Fact` | `xref` | `{factId?, tag, value?, date?, place?, note?}` or `{factId?, gedcom}` – with `factId` the fact is changed; sub-lines that are not mentioned (sources, media, coordinates) are kept |
+| `Messages` | – | `{to, subject?, body, url?}` – level n: sends a message through webtrees' MessageService as the signed-in user (internal, e-mail or both, as the recipient chose; `url` goes into the e-mail as the page it was sent from); `to` one user name or a list, no broadcast. Answer `{ok, delivered}` |
+| `MessageDelete` | – | `{ids}` – deletes own messages. Answer `{ok, deleted}` |
 | `DeleteFact` | `xref` | `{factId}` |
 | `AddIndividual` | – | `{relation: child\|spouse\|father\|mother\|none, relativeTo?, family?, given, surname, sex, birthDate?, birthPlace?, dead?, deathDate?, deathPlace?, marriageDate?, marriagePlace?, facts?}` – `facts` is a list of further facts in the form of `Fact` (`[{tag:"OCCU", value:"Gardener"}, …]`), stored in the same step as the person; if one is invalid, nothing is created |
 | `Accept`, `Reject` | `xref?` | – moderators only: accept or reject the pending changes of one record, or of the whole tree when `xref` is omitted; answer `{ok, pending}` |
@@ -289,7 +292,7 @@ Header `X-CSRF-TOKEN: <csrf from Info>`, JSON body. Answer: `{"ok":true,"xref":"
 Dates in GEDCOM format (`12 MAR 1890`, `ABT 1850`, `BET 1900 AND 1910`). Error codes: `not-found`, `chart-disabled`, `link-not-found`, `link-exists`, `invalid-relation`, `too-many-results`,
 `private`, `not-editable`, `not-editor`, `fact-locked`, `family-locked`, `fact-not-found`,
 `invalid-date`, `invalid-gedcom` (only one level-1 line, sub-lines 2–9 with a valid tag), `invalid-value` (text of the form `@X@` would be a pointer), `invalid-name` (surname between exactly two slashes), `link-tag-not-allowed`, `parent-exists`, `family-required`,
-`family-not-found`, `name-required`, `upload-not-allowed`, `upload-failed`.
+`family-not-found`, `name-required`, `upload-not-allowed`, `upload-failed`, `missing-to`, `unknown-user`, `contact-none`, `missing-body`, `send-failed`, `missing-ids`.
 
 Not included yet: creating sources and repositories, merging records.
 

@@ -260,11 +260,31 @@ ROUTEN = [
      [P("xref", "Record, optional")], None),
     ("post", "Pair", False, 6, "visitor",
      "Redeem the one-time code from the page “App”: afterwards this session is signed in as that user.", [], "`{code}`"),
+    # Stufe n: Platzhalter 42, die Stufe wird beim Release vergeben (CONTRIBUTING.md)
+    ("get", "Messages", True, 42, "member",
+     "The signed-in user's inbox from webtrees' own messaging (table `message`, the “Messages” block on “My page”), newest "
+     "first, 50 per page. webtrees stores the mail wording around the message; `text` is the message alone, `url` the page "
+     "it was sent from (from the trailer), `body` the stored text. `links`: every record of this server mentioned in text "
+     "or URL (pretty URLs and `index.php?route=` alike), resolved to `type` (INDI, FAM, SOUR, OBJE, REPO, NOTE, _LOC, SUBM) "
+     "and `xref` – `null` when the record does not exist or the reader may not see it. `senderName`/`senderUser` when the "
+     "sender's account still exists. `recipients`: the users one can write to – the list of the block (approved, may see "
+     "the tree, contact not switched off), without accounts that have no contact method (webtrees would deliver nothing). "
+     "No read flag exists in webtrees; a client remembers the highest `id` it has shown. `Info.user.messages` counts the inbox.",
+     [P("page", "Page number, 50 messages per page", "integer")], None),
+    ("post", "Messages", True, 42, "member",
+     "Send a message through webtrees' MessageService as the signed-in user – internal, by e-mail or both, as the recipient "
+     "chose; the e-mail names `url` as the page it was sent from, so share a record by putting its page URL there and in the "
+     "text. `to` is one user name or a list (all must be in `recipients`, otherwise nothing is sent); no broadcast, that is "
+     "reserved to administrators in webtrees. Errors `missing-to`, `missing-body`, `unknown-user`, `contact-none`, `send-failed`.",
+     [], "`{to, subject?, body, url?}`. Answer: `{ok, delivered}` – the user names reached."),
+    ("post", "MessageDelete", True, 42, "member",
+     "Delete messages from the own inbox – only own ones, as the block does; foreign ids are ignored.",
+     [], "`{ids}`. Answer: `{ok, deleted}`."),
 ]
 
 FEHLER = sorted(set(re.findall(r"error\((\d+), '([a-z-]+)'\)", "".join(
     open(os.path.join(umgebung.MODUL, f)).read() for f in
-    ["Api4WebtreesModule.php", "src/ReadActions.php", "src/WriteActions.php", "src/AppPages.php", "src/MergeActions.php", "src/TaskActions.php"]))),
+    ["Api4WebtreesModule.php", "src/ReadActions.php", "src/WriteActions.php", "src/AppPages.php", "src/MergeActions.php", "src/TaskActions.php", "src/MessageActions.php"]))),
     key=lambda e: (e[0], e[1]))
 
 
@@ -429,6 +449,13 @@ def sammeln(u):
     code = re.findall(r"[0-9a-f]{48}", seite.text)[0]
     merken("post", "Pair", u.sitzung().post("Pair", None, {"code": code}))
     merken("post", "DeleteRecord", admin.post("DeleteRecord", "testbaum", {}, xref=ehe.json["xref"]))
+    # Nachrichten: Kontaktart setzen (Kommandozeilen-Konten haben keine), eine Nachricht mit Links an mitglied
+    for name, art in (("admin", "messaging"), ("mitglied", "messaging"), ("bearbeiter", "messaging3")):
+        test_api.Nachrichten.kontakt(name, art)
+    basis = admin.info()["baseUrl"].rstrip("/")
+    nachricht = admin.post("Messages", "testbaum", {"to": "mitglied", "subject": "Hanna Offen", "url": f"{basis}/tree/testbaum/individual/{kind}",
+                                                     "body": f"Schau dir {basis}/tree/testbaum/individual/{kind} und {basis}/tree/testbaum/individual/I5 an."})
+    merken("post", "Messages", nachricht)
     bearbeiter = u.sitzung("bearbeiter")
     bearbeiter.post("Fact", "testbaum", {"tag": "OCCU", "value": "Wartet"}, xref="I2")
     bearbeiter.post("Fact", "testbaum", {"tag": "OCCU", "value": "Wartet auch"}, xref="I1")
@@ -443,6 +470,8 @@ def sammeln(u):
         merken("get", "MediaObject", u.sitzung(benutzer).get("MediaObject", "testbaum", xref=m))
     merken("post", "MediaCrop", admin.post("MediaCrop", "testbaum", {"media": m, "crop": {"top": 0, "left": 0, "height": 1, "width": 1}}, xref="I1"))
     merken("post", "UnlinkMedia", admin.post("UnlinkMedia", "testbaum", {"media": m}, xref="I1"))
+    eingang = u.sitzung("mitglied")
+    merken("post", "MessageDelete", eingang.post("MessageDelete", "testbaum", {"ids": [n["id"] for n in eingang.get("Messages", "testbaum").json["messages"]]}))
     merken("post", "Reject", admin.post("Reject", "testbaum", {}, xref="I2"))
     merken("post", "Accept", admin.post("Accept", "testbaum", {}))
     return beispiele

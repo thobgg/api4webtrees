@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+**Level n – Messages:** webtrees' own messaging as JSON, so an app has an inbox and can share a record with a fellow
+researcher as a message with the link. `GET Messages` lists the signed-in user's inbox (50 per page): `text` is the
+message alone (webtrees stores the mail wording around it), `url` the page it was sent from, `links` every record of
+this server mentioned in text or URL, resolved to `type` and `xref` (`null` when the reader may not see it), and
+`recipients` the users one can write to – the list of the “Messages” block, without accounts that have no contact
+method (webtrees would deliver nothing to them). `POST Messages {to, subject?, body, url?}` sends through webtrees'
+MessageService as the signed-in user (internal, e-mail or both, as the recipient chose; no broadcast). `POST
+MessageDelete {ids}` deletes own messages. `Info.user.messages` counts the inbox. Errors `missing-to`, `unknown-user`,
+`contact-none`, `missing-body`, `send-failed`, `missing-ids`.
+
 ## 1.24.0 – 2026-10-29
 API level 41.
 **“App” page:** only the first app for the visitor's device is open, the others fold to one line each – as documented

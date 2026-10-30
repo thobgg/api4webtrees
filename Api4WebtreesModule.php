@@ -58,6 +58,7 @@ use function strtolower;
  *   src/JsonBuilders.php  Bausteine der JSON-Antworten
  *   src/MergeActions.php  Personen zusammenfuehren mit Vorschau, Protokoll und Rueckgaengig
  *   src/TaskActions.php   Forschungsaufgaben, Reihenfolge, Aenderungsverlauf (Stufe 30)
+ *   src/MessageActions.php Nachrichten: Posteingang, Senden, Loeschen ueber webtrees' Nachrichtensystem (Stufe n)
  *   src/GedcomText.php    reine GEDCOM-Textfunktionen (bauen, pruefen, entschaerfen)
  */
 class Api4WebtreesModule extends AbstractModule implements ModuleCustomInterface, ModuleConfigInterface, ModuleFooterInterface, MiddlewareInterface
@@ -72,6 +73,7 @@ class Api4WebtreesModule extends AbstractModule implements ModuleCustomInterface
     use PlaceActions;
     use MergeActions;
     use TaskActions;
+    use MessageActions;
 
 
     // webtrees benennt ein eigenes Modul nach seinem Ordner ("_api4webtrees_") - was setName() im Modul sagt,

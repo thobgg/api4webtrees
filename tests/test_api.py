@@ -81,6 +81,7 @@ def leseaufrufe(baum="testbaum"):
         ("Places", baum, {"list": 1}),
         ("Merges", baum, {}),
         ("Tasks", baum, {}),
+        ("Messages", baum, {}),
         ("Tasks", baum, {"open": 1}),
         ("Changes", baum, {"limit": 20}),
         ("Changes", baum, {"xref": "I1"}),
@@ -1582,6 +1583,85 @@ class Schreiben(unittest.TestCase):
         a = s.post("Pair", None, {"code": "0" * 48})
         self.assertEqual(False, a.json["ok"], a)
         self.assertFalse(s.info()["user"]["loggedIn"])
+
+
+class Nachrichten(unittest.TestCase):
+    """Stufe n: Posteingang, Senden und Loeschen ueber webtrees' eigenes Nachrichtensystem (Tabelle message, MessageService)."""
+
+    @staticmethod
+    def kontakt(name, art):
+        uid = umgebung.sql("SELECT user_id FROM wt_user WHERE user_name = ?", name)[0][0]
+        umgebung.sql("DELETE FROM wt_user_setting WHERE user_id = ? AND setting_name = 'contactmethod'", uid)
+        if art is not None:
+            umgebung.sql("INSERT INTO wt_user_setting (user_id, setting_name, setting_value) VALUES (?, 'contactmethod', ?)", uid, art)
+        return uid
+
+    def test_nachrichten(self):
+        # Kontaktarten: admin und mitglied intern, bearbeiter nur E-Mail, verwalter kein Kontakt
+        self.kontakt("admin", "messaging")
+        mid = self.kontakt("mitglied", "messaging")
+        bid = self.kontakt("bearbeiter", "messaging3")
+        self.kontakt("verwalter", "none")
+        umgebung.sql("DELETE FROM wt_message WHERE user_id IN (?, ?)", mid, bid)
+        admin = U.sitzung("admin")
+        m = U.sitzung("mitglied")
+        basis = m.info()["baseUrl"].rstrip("/")
+
+        self.assertEqual("not-logged-in", U.sitzung().get("Messages", "testbaum").json["error"])
+        self.assertEqual("not-logged-in", U.sitzung().post("Messages", "testbaum", {"to": "admin", "body": "x"}).json["error"])
+
+        # Empfaengerliste wie im Block: ohne sich selbst, ohne "none", ohne Konten ohne Kontaktart
+        empfaenger = {r["user"]: r["contact"] for r in m.get("Messages", "testbaum").json["recipients"]}
+        self.assertEqual({"admin": "messaging", "bearbeiter": "messaging3"}, empfaenger)
+
+        self.assertEqual("missing-to", admin.post("Messages", "testbaum", {"body": "x"}).json["error"])
+        self.assertEqual("missing-body", admin.post("Messages", "testbaum", {"to": "mitglied"}).json["error"])
+        self.assertEqual("unknown-user", admin.post("Messages", "testbaum", {"to": "niemand", "body": "x"}).json["error"])
+        self.assertEqual("contact-none", admin.post("Messages", "testbaum", {"to": "verwalter", "body": "x"}).json["error"])
+        self.assertEqual("contact-none", admin.post("Messages", "testbaum", {"to": ["mitglied", "verwalter"], "body": "x"}).json["error"],
+                         "ein unerreichbarer Empfaenger in der Liste: nichts wird gesendet")
+        self.assertEqual(0, umgebung.sql("SELECT COUNT(*) FROM wt_message WHERE user_id = ?", mid)[0][0])
+
+        # Senden mit Link auf eine vertrauliche (I5) und eine sichtbare Person (I1), dazu ein fremder Server und die Form ohne schoene URLs
+        text = (f"Schau dir {basis}/tree/testbaum/individual/I1/Max-Muster an, und {basis}/tree/testbaum/individual/I5 -\n"
+                f"nicht aber https://example.org/tree/testbaum/individual/I1 oder {basis}/index.php?route=%2Ftree%2Ftestbaum%2Ffamily%2FF2&x=1")
+        url = f"{basis}/tree/testbaum/individual/I1/Max-Muster"
+        a = admin.post("Messages", "testbaum", {"to": "mitglied", "subject": "  Max   Muster I1 ", "body": text, "url": url}).json
+        self.assertEqual(["mitglied"], a["delivered"], a)
+
+        posteingang = m.get("Messages", "testbaum").json
+        self.assertEqual((1, None), (posteingang["page"], posteingang["nextPage"]))
+        n = posteingang["messages"][0]
+        self.assertEqual("Max Muster I1", n["subject"])
+        self.assertEqual(text, n["text"], "nur der Text zwischen den Strichlinien, die Mail-Floskeln bleiben in body")
+        self.assertEqual(url, n["url"])
+        self.assertIn("------------------------------------------------------------", n["body"])
+        self.assertEqual(("admin", "Admin", "admin@example.invalid"), (n["senderUser"], n["senderName"], n["sender"]))
+        self.assertRegex(n["created"], r"^\d{4}-\d{2}-\d{2}T")
+        links = {(l["type"], l["url"]): l["xref"] for l in n["links"]}
+        self.assertEqual("I1", links[("INDI", f"{basis}/tree/testbaum/individual/I1/Max-Muster")], "Link aus Text und url nur einmal")
+        self.assertIsNone(links[("INDI", f"{basis}/tree/testbaum/individual/I5")], "vertraulich: Art ja, Kennung nein")
+        self.assertEqual("F2", links[("FAM", f"{basis}/index.php?route=%2Ftree%2Ftestbaum%2Ffamily%2FF2&x=1")])
+        self.assertEqual(3, len(links), "fremder Server kommt nicht vor")
+        self.assertEqual(1, m.info()["user"]["messages"])
+        self.assertEqual(0, admin.info()["user"]["messages"])
+
+        # Antwort an admin landet in dessen Posteingang, nicht in Lesern des Baums
+        self.assertEqual(["admin"], m.post("Messages", "testbaum", {"to": "admin", "subject": "RE: Max Muster I1", "body": "Danke"}).json["delivered"])
+        self.assertEqual(["Danke"], [x["text"] for x in admin.get("Messages", "testbaum").json["messages"]])
+
+        # Nur E-Mail (messaging3): nichts in der Tabelle; ob der Testserver Mail verschicken kann, entscheidet er
+        a = admin.post("Messages", "testbaum", {"to": "bearbeiter", "body": "Mailtest"}).json
+        self.assertIn(a.get("error", "ok"), ("ok", "send-failed"), a)
+        self.assertEqual(0, umgebung.sql("SELECT COUNT(*) FROM wt_message WHERE user_id = ?", bid)[0][0])
+
+        # Loeschen: nur eigene
+        self.assertEqual("missing-ids", m.post("MessageDelete", "testbaum", {"ids": []}).json["error"])
+        self.assertEqual(0, U.sitzung("bearbeiter").post("MessageDelete", "testbaum", {"ids": [n["id"]]}).json["deleted"])
+        self.assertEqual(1, m.info()["user"]["messages"])
+        self.assertEqual(1, m.post("MessageDelete", "testbaum", {"ids": [n["id"], 999999]}).json["deleted"])
+        self.assertEqual([], m.get("Messages", "testbaum").json["messages"])
+        self.assertEqual(0, m.info()["user"]["messages"])
 
 
 if __name__ == "__main__":
