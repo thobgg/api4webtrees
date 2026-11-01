@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.25.1 – 2026-11-01
+**Documentation only – the module code is the same as 1.25.0** (it still reports `1.25.0`; no new ZIP, keep using
+`api4webtrees-v1.25.0.zip`). `docs/openapi.json` described several answers too narrowly: the response schemas are
+derived from real answers, and the small test tree never had coordinates at most places, occupations of children,
+or a pedigree without siblings – so those fields were documented as “always `null`” or as required. Answers from an
+ordinary tree failed the schema although nothing was wrong. Now a field only ever seen empty has no type
+restriction, and the schemas are derived from the test tree **and** the demo tree Falkenrath 1.7 (CC0, 492
+individuals). The new schema is stricter elsewhere (more required fields, more closed objects). `openapi.json`
+has `info.version` 1.25.1 and `info.x-module-version` 1.25.0. No change to any answer or to the API level (42).
+
 ## 1.25.0 – 2026-10-30
 **Level 42 – Messages:** webtrees' own messaging as JSON, so an app has an inbox and can share a record with a fellow
 researcher as a message with the link. `GET Messages` lists the signed-in user's inbox (50 per page): `text` is the

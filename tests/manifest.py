@@ -8,6 +8,7 @@ Manifest - aendert sich eine Antwort, ohne dass das Manifest neu erzeugt wurde, 
 """
 import base64
 import datetime
+import hashlib
 import json
 import os
 import re
@@ -297,6 +298,10 @@ def typ(v):
 def ableiten(werte):
     """Ein JSON-Schema, das alle Beispielwerte beschreibt: Felder, die immer da sind, werden Pflicht."""
     typen = sorted({typ(v) for v in werte})
+    if typen == ["null"]:
+        # Nur leer gesehen: Der Typ ist unbekannt, nicht "immer null" (bis 1.25.0 stand hier type null, und
+        # jede Koordinate oder jeder Beruf in einem anderen Baum verletzte das Schema).
+        return {}
     if "integer" in typen and "number" in typen:
         typen.remove("integer")
     s = {"type": typen[0] if len(typen) == 1 else typen}
@@ -465,6 +470,12 @@ def sammeln(u):
                                                                       ("Individual", "testbaum", {"xref": "I1", "relativeTo": "I3"})]:
             merken("get", aktion, s.get(aktion, b, **params))
 
+    falkenrath_einspielen()
+    for benutzer in (None, "mitglied", "bearbeiter", "verwalter", "admin"):
+        s = u.sitzung(benutzer)
+        for aktion, b, params in falkenrath_aufrufe():
+            merken("get", aktion, s.get(aktion, b, **params))
+
     for benutzer in (None, "mitglied", "bearbeiter", "admin"):
         merken("get", "MediaObject", u.sitzung(benutzer).get("MediaObject", "testbaum", xref=m))
     merken("post", "MediaCrop", admin.post("MediaCrop", "testbaum", {"media": m, "crop": {"top": 0, "left": 0, "height": 1, "width": 1}}, xref="I1"))
@@ -476,12 +487,70 @@ def sammeln(u):
     return beispiele
 
 
+# ── Zweiter Baum: Falkenrath ────────────────────────────────────────────────────────────────────────────────────
+# Der Testbaum oben ist klein und gezielt gebaut; was dort nie vorkommt (Koordinaten an jedem Ort, Berufe, Paten,
+# Bilder, Pedigree ohne Geschwister), stand bis 1.25.0 als "nur null" oder "Pflicht" im Schema. Darum kommen die
+# Leserouten zusaetzlich mit dem Demo-Baum Falkenrath 1.7 (CC0, 492 Personen) in die Beispiele.
+
+FALKENRATH_URL = ("https://raw.githubusercontent.com/thobgg/falkenrath-demo-tree/"
+                  "ce1d594b144e5841a64b59bc357100f87a5beade/versionen/falkenrath-1.7.ged")
+FALKENRATH_SHA256 = "dfa37b342c36f9362a6f889aac8d4a2a0fcb4f2b7722bbeacbf62a6967573595"
+
+
+def falkenrath_ged():
+    """Falkenrath 1.7 aus FALKENRATH_GED oder heruntergeladen nach tests/.cache (Pruefsumme wird geprueft)."""
+    datei = os.environ.get("FALKENRATH_GED") or os.path.join(HIER, ".cache", "falkenrath-1.7.ged")
+    if not os.path.isfile(datei):
+        os.makedirs(os.path.dirname(datei), exist_ok=True)
+        urllib.request.urlretrieve(FALKENRATH_URL, datei + ".tmp")
+        os.replace(datei + ".tmp", datei)
+    ist = hashlib.sha256(open(datei, "rb").read()).hexdigest()
+    if ist != FALKENRATH_SHA256:
+        raise RuntimeError(f"Pruefsumme {datei}: {ist}")
+    return datei
+
+
+def falkenrath_einspielen():
+    umgebung.wt("tree", "falkenrath", "--create", "--title=Falkenrath")
+    umgebung.wt("tree-import", "falkenrath", falkenrath_ged())
+    for name, rolle in umgebung.KONTEN.items():
+        umgebung.wt("user-tree-setting", name, "falkenrath", "canedit", rolle)
+
+
+def falkenrath_aufrufe():
+    b = "falkenrath"
+    personen = ["I1", "I2", "I21", "I22", "I54", "I130", "I206"] + [f"I{n}" for n in range(3, 60, 4)]
+    aufrufe = [("Individuals", b, {}), ("Individuals", b, {"page": 2}), ("Individuals", b, {"q": "Falkenrath"}),
+               ("Individuals", b, {"q": "Bienenbüttel", "scope": "all"})]
+    for x in personen:
+        aufrufe += [("Individual", b, {"xref": x}), ("Individual", b, {"xref": x, "relativeTo": "I21"}),
+                    ("Pedigree", b, {"xref": x}), ("Pedigree", b, {"xref": x, "generations": 4, "siblings": 1}),
+                    ("Descendants", b, {"xref": x, "generations": 3}),
+                    ("Relationship", b, {"xref1": x, "xref2": "I130"})]
+    aufrufe += [("Family", b, {"xref": f"F{n}"}) for n in range(1, 40, 3)]
+    aufrufe += [("Source", b, {"xref": f"S{n}"}) for n in range(1, 30, 5)]
+    aufrufe += [("MediaObject", b, {"xref": f"M{n}"}) for n in range(1, 140, 20)]
+    aufrufe += [("Place", b, {"name": o}) for o in ("Bienenbüttel, Uelzen, Niedersachsen, Deutschland",
+                                                     "Celle, Niedersachsen, Deutschland", "Milwaukee, Wisconsin, USA")]
+    aufrufe += [("Export", b, {"page": n}) for n in (1, 2, 3)]
+    aufrufe += [("Sources", b, {}), ("Repositories", b, {}), ("MediaList", b, {}), ("MediaList", b, {"page": 2}),
+                ("Anniversaries", b, {"days": 60}), ("Places", b, {"list": 1}), ("Places", b, {"q": "Bie"}),
+                ("Tasks", b, {}), ("Changes", b, {"limit": 50}), ("Tags", b, {"type": "INDI"})]
+    return aufrufe
+
+
 # ── Ausgabe ────────────────────────────────────────────────────────────────────────────────────────────────────
 
 def modulversion():
     """Die Fassung aus Api4WebtreesModule.php (customModuleVersion) - latest-version.txt wird erst beim Release gesetzt."""
     quelle = open(os.path.join(umgebung.MODUL, "Api4WebtreesModule.php"), encoding="utf-8").read()
     return re.search(r"function customModuleVersion\(\): string\s*\{\s*return '([^']+)'", quelle).group(1)
+
+
+# Fassung der Dokumentation. 1.25.1 hat denselben Modulcode wie 1.25.0 (customModuleVersion bleibt 1.25.0), nur
+# openapi.json und API.md sind mit dem korrigierten Schema-Ableiten und dem Falkenrath-Baum neu erzeugt. Steht hier
+# None, gilt die Modulfassung.
+DOKU_FASSUNG = "1.25.1"
 
 
 def openapi(beispiele):
@@ -511,7 +580,7 @@ def openapi(beispiele):
         pfade.setdefault(pfad, {})[methode] = op
     return {
         "openapi": "3.1.0",
-        "info": {"title": "api4webtrees", "version": modulversion(),
+        "info": {"title": "api4webtrees", "version": DOKU_FASSUNG or modulversion(), "x-module-version": modulversion(),
                  "x-api-level": int(re.search(r"API_VERSION = (\d+)", open(os.path.join(umgebung.MODUL, "Api4WebtreesModule.php")).read()).group(1)),
                  "description": "JSON API for webtrees 2.2. Generated by tests/manifest.py from real responses – do not edit by hand."},
         "servers": [{"url": "{webtrees}/index.php?route=", "variables": {"webtrees": {"default": "https://example.org/webtrees"}}}],
