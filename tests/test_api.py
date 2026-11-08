@@ -1485,8 +1485,25 @@ class Schreiben(unittest.TestCase):
         self.assertEqual(1, len(treffer), a)
         self.assertEqual((0, 100, "BIRT"), (treffer[0]["inDays"], treffer[0]["years"], treffer[0]["tag"]))
         self.assertEqual(neu.json["xref"], treffer[0]["person"]["xref"])
+        self.assertEqual("gregorian", treffer[0]["date"]["calendar"])
         self.assertIn("more", a.json)
         self.assertLessEqual(len(a.json["data"]), a.json["total"])
+
+    def test_jahrestag_anderer_kalender(self):
+        """Stufe n: date.calendar nennt den Kalender, Jahrestage bringen das GEDCOM-Datum (Issue #43)."""
+        # Heutiger Tag im julianischen Kalender: gregorianisch minus 13 Tage (gilt 1900-2100)
+        jul = datetime.date.today() - datetime.timedelta(days=13)
+        datum = f"@#DJULIAN@ {jul.day} {'JAN FEB MAR APR MAY JUN JUL AUG SEP OCT NOV DEC'.split()[jul.month - 1]} 1850"
+        s = U.sitzung("admin")
+        neu = s.post("AddIndividual", "testbaum", {"relation": "none", "given": "Kalender", "surname": "Julian", "sex": "M", "dead": True})
+        self.assertEqual(True, neu.json["ok"], neu)
+        f = s.post("Fact", "testbaum", {"tag": "BIRT", "date": datum}, xref=neu.json["xref"])
+        self.assertEqual(True, f.json["ok"], f)
+        a = U.sitzung().get("Anniversaries", "testbaum", days=1)
+        treffer = [e for e in a.json["data"] if e["xref"] == neu.json["xref"]]
+        self.assertEqual(1, len(treffer), a)
+        self.assertEqual("julian", treffer[0]["date"]["calendar"])
+        self.assertEqual(datum, treffer[0]["date"]["gedcom"])
 
     def test_app_liste_gueltig(self):
         """src/Apps.php: jeder Eintrag vollstaendig, https, Schema eindeutig - die Pruefung, die ein Pull Request bestehen muss."""

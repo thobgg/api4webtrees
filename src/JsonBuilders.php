@@ -792,6 +792,16 @@ trait JsonBuilders
         return ['date' => $date_json, 'place' => $place_json];
     }
 
+    private const CALENDAR_NAMES = [
+        '@#DGREGORIAN@' => 'gregorian',
+        '@#DJULIAN@'    => 'julian',
+        '@#DHEBREW@'    => 'jewish',
+        '@#DFRENCH R@'  => 'french',
+        '@#DHIJRI@'     => 'hijri',
+        '@#DJALALI@'    => 'jalali',
+        '@#DROMAN@'     => 'roman',
+    ];
+
     /**
      * @return array<string,mixed>|null
      */
@@ -805,6 +815,8 @@ trait JsonBuilders
             'text' => $this->plain($date->display()),
             'year' => $date->gregorianYear(),
             'jd'   => $date->minimumJulianDay(),
+            // Kalender, in dem das Datum geschrieben ist (Stufe n): gregorian, julian, jewish, french, hijri, jalali, roman
+            'calendar' => self::CALENDAR_NAMES[$date->minimumDate()::ESCAPE] ?? 'gregorian',
         ];
 
         // Bei Ereignissen zusaetzlich das Datum, wie es im GEDCOM steht ("ABT 1850", "9 NOV 1957") - damit ein

@@ -92,7 +92,11 @@ ROUTEN = [
      [P("page", "Page, from 1", "integer")], None),
     ("get", "Anniversaries", True, 4, "visitor",
      "Birthdays, weddings and deaths in the next `days` days. At most 100 entries: per day living people first, "
-     "then round anniversaries (25, 50 …); `total` and `more` tell whether there were more (since 1.9.6).",
+     "then round anniversaries (25, 50 …); `total` and `more` tell whether there were more (since 1.9.6). "
+     "A fact whose date is written in another calendar (Jewish, Julian …) is found on the day it falls in that calendar; "
+     "since level n `date.calendar` names the calendar (`gregorian`, `julian`, `jewish`, `french`, `hijri`, `jalali`, `roman`) "
+     "and `date.gedcom` is the date as stored, e.g. `@#DHEBREW@ 15 TSH 5700` – so an app can tell two entries of the same "
+     "event in two calendars apart.",
      [P("days", "1–60, default 14", "integer")], None),
     ("get", "Bookmarks", True, 11, "member", "The signed-in user's bookmarks in this tree. From level 30 they are webtrees' own favourites "
      "(table `favorite`, block “My favourites” on “My page”): `data` the user's, `treeFavorites` the tree's (set by managers), "

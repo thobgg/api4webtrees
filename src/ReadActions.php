@@ -699,7 +699,7 @@ trait ReadActions
                 'tag'     => $this->shortTag($fact->tag()),
                 'label'   => $this->factLabel($fact),
                 'years'   => $fact->anniv,
-                'date'    => $this->dateJson($fact->date()),
+                'date'    => $this->dateJson($fact->date(), $fact->attribute('DATE')),
                 'xref'    => $record->xref(),
                 'name'    => $this->recordName($record),
                 'person'  => $record instanceof Individual ? $this->personShort($record) : null,

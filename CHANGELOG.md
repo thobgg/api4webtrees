@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased – level n
+**Calendar of a date (issue #43).** Every `date` object now has `calendar` – the calendar the date is written in
+(`gregorian`, `julian`, `jewish`, `french`, `hijri`, `jalali`, `roman`). `Anniversaries` also gives `date.gedcom`, the
+date as stored (`@#DHEBREW@ 15 TSH 5700`). webtrees already finds an event on the day it falls in any calendar, so a
+person with the same event in two calendars appeared twice and an app could not tell the entries apart. No new route;
+older clients ignore the extra fields.
+
 ## 1.25.1 – 2026-11-01
 **Documentation only – the module code is the same as 1.25.0** (it still reports `1.25.0`; no new ZIP, keep using
 `api4webtrees-v1.25.0.zip`). `docs/openapi.json` described several answers too narrowly: the response schemas are
