@@ -114,6 +114,9 @@ class Api4WebtreesModule extends AbstractModule implements ModuleCustomInterface
     // Moduleinstellung: Apps aus src/Apps.php, die der Verwalter abgeschaltet hat (Kennungen mit Komma). Leer = alle an.
     private const string APPS_OFF_SETTING   = 'apps_off';
 
+    // Moduleinstellung: '1' = der Verwalter hat den Hinweis oben auf der Seite fuer alle abgeschaltet. Leer = an.
+    private const string HINT_OFF_SETTING   = 'hint_off';
+
     private const int PAGE_SIZE           = 50;
     private const int MEDIA_PAGE_SIZE     = 60;
     private const int PLACES_LIMIT        = 20;
@@ -323,7 +326,7 @@ class Api4WebtreesModule extends AbstractModule implements ModuleCustomInterface
 
         return view($this->name() . '::footer', [
             'app_url'   => $this->actionUrl('App', $tree->name()),
-            'hint'      => $hint_app !== null
+            'hint'      => $hint_app !== null && $this->getPreference(self::HINT_OFF_SETTING) !== '1'
                 && Auth::user()->getPreference(self::hintKey($request)) === '' && $action !== 'App' && $action !== 'Connect',
             'hint_app'  => $hint_app,
             'hint_url'  => $this->actionUrl('HintOff', $tree->name()),

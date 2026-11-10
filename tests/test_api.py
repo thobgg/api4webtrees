@@ -1572,8 +1572,9 @@ class Schreiben(unittest.TestCase):
         self.assertIn("wttux", alle)
         csrf = re.search(r'name="_csrf" value="([^"]+)"', formular).group(1)
 
-        def speichern(apps):
-            daten = urllib.parse.urlencode([("_csrf", csrf), ("trees[]", "testbaum"), ("trees[]", "geheim")] + [("apps[]", a) for a in apps]).encode()
+        def speichern(apps, hinweis=True):
+            daten = urllib.parse.urlencode([("_csrf", csrf), ("trees[]", "testbaum"), ("trees[]", "geheim")] + [("apps[]", a) for a in apps]
+                                           + ([("hint", "1")] if hinweis else [])).encode()
             req = urllib.request.Request(admin_url, data=daten, method="POST")
             req.add_header("Content-Type", "application/x-www-form-urlencoded")
             return s._senden(req)
@@ -1594,6 +1595,25 @@ class Schreiben(unittest.TestCase):
 
         seite = s._senden(urllib.request.Request(s.url("/module/_api4webtrees_/App/testbaum"))).text
         self.assertIn("wtTux", seite)
+
+        # Issue #26: der Verwalter schaltet den Hinweis oben fuer alle ab, der Link in der Fusszeile bleibt.
+        self.assertIn('name="hint" value="1" id="hint" checked', formular)
+        uid = umgebung.sql("SELECT user_id FROM wt_user WHERE user_name = 'admin'")[0][0]
+        umgebung.sql("DELETE FROM wt_user_setting WHERE user_id = ? AND setting_name = 'webtreesand_hint'", uid)
+
+        def baumseite():
+            return s._senden(urllib.request.Request(s.url("/tree/testbaum"))).text
+
+        self.assertIn("wt-webtreesand-hint", baumseite())
+        try:
+            speichern(alle, hinweis=False)
+            seite = baumseite()
+            self.assertNotIn("wt-webtreesand-hint", seite)
+            self.assertIn("wt-footer-webtreesand", seite)
+            self.assertIn('id="hint" >', s._senden(urllib.request.Request(admin_url)).text)
+        finally:
+            speichern(alle)
+        self.assertIn("wt-webtreesand-hint", baumseite())
 
     def test_ungueltiger_koppelcode(self):
         s = U.sitzung()

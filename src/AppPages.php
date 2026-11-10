@@ -92,6 +92,7 @@ trait AppPages
             'download_qr'  => $this->qrSvg($download),
             'apps'         => $apps,
             'icons'        => $this->iconUrls($apps),
+            'hint'         => $this->getPreference(self::HINT_OFF_SETTING) !== '1',
             'device_names' => self::deviceNames(),
             'version'      => $this->customModuleVersion(),
             'api'          => self::API_VERSION,
@@ -126,6 +127,9 @@ trait AppPages
         }
 
         $this->setPreference(self::APPS_OFF_SETTING, implode(',', $off));
+
+        // Hinweis oben auf der Seite: abgehakt = fuer alle aus; der Link in der Fusszeile bleibt.
+        $this->setPreference(self::HINT_OFF_SETTING, Validator::parsedBody($request)->boolean('hint', false) ? '' : '1');
 
         FlashMessages::addMessage(I18N::translate('Die Einstellungen wurden gespeichert.'), 'success');
 

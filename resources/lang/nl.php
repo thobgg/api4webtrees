@@ -70,6 +70,8 @@ return [
     'Android-Handy und -Tablet' => 'Android-telefoon en -tablet',
     'App fürs Handy: %s' => 'App voor de telefoon: %s',
     'Apps' => 'Apps',
+    'Hinweis oben auf der Seite zeigen' => 'Melding bovenaan de pagina tonen',
+    'Angemeldete Nutzer sehen oben einen Hinweis auf die App für ihr Gerät, bis sie die App verbunden oder den Hinweis weggeklickt haben. Ohne Haken entfällt er für alle; der Link zur Seite „App“ in der Fußzeile bleibt.' => 'Aangemelde gebruikers zien bovenaan de pagina een melding over de app voor hun apparaat, totdat zij de app hebben verbonden of de melding hebben weggeklikt. Zonder vinkje vervalt de melding voor iedereen; de link naar de pagina „App” in de voettekst blijft.',
     'Auch für %1$s: %2$s' => 'Ook voor %1$s: %2$s',
     'Diese Apps kennt das Modul. Angekreuzte erscheinen auf der Seite „App“, im Hinweis und in der Fußzeile – jede auf den Geräten, für die es sie gibt. Eine App, die hier fehlt, kommt per Pull Request in die Liste des Moduls (src/Apps.php); die Schnittstelle selbst steht jeder App offen.' => 'Deze apps kent de module. Aangevinkte apps verschijnen op de pagina „App”, in de melding en in de voettekst – elk op de apparaten waarvoor ze bestaan. Een app die hier ontbreekt, komt via een pull request in de lijst van de module (src/Apps.php); de interface zelf staat open voor elke app.',
     'In %s meldest du dich mit dieser Adresse, deinem webtrees-Benutzernamen und Passwort an:' => 'In %s meldt u zich aan met dit adres, uw webtrees-gebruikersnaam en wachtwoord:',

@@ -13,6 +13,7 @@ use Fisharebest\Webtrees\I18N;
  * @var string                                                                  $download_url
  * @var string                                                                  $download_qr
  * @var list<array<string,mixed>>                                               $apps          aus src/Apps.php, je App 'enabled'
+ * @var bool                                                                    $hint          Hinweis oben auf der Seite an
  * @var array<string,string>                                                    $icons         App-Kennung => Logo (nur Apps mit Logo)
  * @var array<string,string>                                                    $device_names  android => "Android-Handy und -Tablet" ...
  * @var string                                                                  $version
@@ -91,6 +92,12 @@ use Fisharebest\Webtrees\I18N;
             </tr>
         <?php endforeach ?>
     </table>
+
+    <div class="form-check mb-1">
+        <input class="form-check-input" type="checkbox" name="hint" value="1" id="hint" <?= $hint ? 'checked' : '' ?>>
+        <label class="form-check-label" for="hint"><?= I18N::translate('Hinweis oben auf der Seite zeigen') ?></label>
+    </div>
+    <p class="text-muted small" style="max-width: 50rem;"><?= I18N::translate('Angemeldete Nutzer sehen oben einen Hinweis auf die App für ihr Gerät, bis sie die App verbunden oder den Hinweis weggeklickt haben. Ohne Haken entfällt er für alle; der Link zur Seite „App“ in der Fußzeile bleibt.') ?></p>
 
     <button type="submit" class="btn btn-primary mb-4"><?= I18N::translate('Speichern') ?></button>
 </form>

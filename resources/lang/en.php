@@ -70,6 +70,8 @@ return [
     'Android-Handy und -Tablet' => 'Android phone and tablet',
     'App fürs Handy: %s' => 'App for the phone: %s',
     'Apps' => 'Apps',
+    'Hinweis oben auf der Seite zeigen' => 'Show the note at the top of the page',
+    'Angemeldete Nutzer sehen oben einen Hinweis auf die App für ihr Gerät, bis sie die App verbunden oder den Hinweis weggeklickt haben. Ohne Haken entfällt er für alle; der Link zur Seite „App“ in der Fußzeile bleibt.' => 'Signed-in users see a note at the top of the page about the app for their device until they have connected the app or dismissed the note. Unticked, it is gone for everyone; the link to the “App” page in the footer stays.',
     'Auch für %1$s: %2$s' => 'Also for %1$s: %2$s',
     'Diese Apps kennt das Modul. Angekreuzte erscheinen auf der Seite „App“, im Hinweis und in der Fußzeile – jede auf den Geräten, für die es sie gibt. Eine App, die hier fehlt, kommt per Pull Request in die Liste des Moduls (src/Apps.php); die Schnittstelle selbst steht jeder App offen.' => 'These are the apps the module knows. Ticked ones appear on the “App” page, in the note and in the footer – each on the devices it exists for. An app missing here joins the module’s list by pull request (src/Apps.php); the interface itself is open to every app.',
     'In %s meldest du dich mit dieser Adresse, deinem webtrees-Benutzernamen und Passwort an:' => 'In %s, sign in with this address, your webtrees user name and password:',

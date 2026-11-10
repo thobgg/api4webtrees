@@ -7,6 +7,10 @@ date as stored (`@#DHEBREW@ 15 TSH 5700`). webtrees already finds an event on th
 person with the same event in two calendars appeared twice and an app could not tell the entries apart. No new route;
 older clients ignore the extra fields.
 
+**Note at the top of the page can be switched off (issue #26).** The settings have a tick *Show the note at the top of
+the page* (on by default). Unticked, signed-in users no longer see the note promoting the app for their device; the
+footer link to the “App” page stays. Until now the only way out was for every user to dismiss it. Not an API change.
+
 ## 1.25.1 – 2026-11-01
 **Documentation only – the module code is the same as 1.25.0** (it still reports `1.25.0`; no new ZIP, keep using
 `api4webtrees-v1.25.0.zip`). `docs/openapi.json` described several answers too narrowly: the response schemas are

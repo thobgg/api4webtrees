@@ -85,6 +85,9 @@ für keinen Benutzer und unabhängig von seinen Rechten in webtrees. Standard: a
 Abgehakte verschwinden von der Seite „App“, aus dem Hinweis und der Fußzeile. Standard: alle an. Siehe
 [Apps auf der Seite „App“](#apps-auf-der-seite-app).
 
+**Hinweis oben auf der Seite:** ohne Häkchen bei *Hinweis oben auf der Seite zeigen* entfällt der Hinweis (siehe unten)
+für alle Benutzer; der Link zur Seite „App“ in der Fußzeile bleibt. Standard: an.
+
 ![Einstellungsseite: App installieren, Stammbäume für die App, Apps, Status](docs/einstellungen.png)
 
 ## Für Benutzer: die Seite „App“

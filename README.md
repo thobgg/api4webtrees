@@ -82,6 +82,9 @@ for any user, whatever their rights in webtrees. Default: all trees.
 **Apps:** the apps the module knows (wtAnd, wtWin, wtTux, wtMac, webtrees mobile for iPhone and iPad, and any added by pull request), each with a tick. Unticked apps
 disappear from the “App” page, the note and the footer. Default: all on. See [Apps on the “App” page](#apps-on-the-app-page).
 
+**Note at the top of the page:** untick *Show the note at the top of the page* to switch the note (see below) off for
+all users; the footer link to the “App” page stays. Default: on.
+
 ![Settings page: install the app, family trees for the app, apps, status](docs/einstellungen.png)
 
 ## For users: the “App” page
