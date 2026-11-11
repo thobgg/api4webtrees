@@ -94,7 +94,7 @@ ROUTEN = [
      "Birthdays, weddings and deaths in the next `days` days. At most 100 entries: per day living people first, "
      "then round anniversaries (25, 50 …); `total` and `more` tell whether there were more (since 1.9.6). "
      "A fact whose date is written in another calendar (Jewish, Julian …) is found on the day it falls in that calendar; "
-     "since level n `date.calendar` names the calendar (`gregorian`, `julian`, `jewish`, `french`, `hijri`, `jalali`, `roman`) "
+     "since level 43 `date.calendar` names the calendar (`gregorian`, `julian`, `jewish`, `french`, `hijri`, `jalali`, `roman`) "
      "and `date.gedcom` is the date as stored, e.g. `@#DHEBREW@ 15 TSH 5700` – so an app can tell two entries of the same "
      "event in two calendars apart.",
      [P("days", "1–60, default 14", "integer")], None),
@@ -554,7 +554,7 @@ def modulversion():
 # Fassung der Dokumentation. 1.25.1 hat denselben Modulcode wie 1.25.0 (customModuleVersion bleibt 1.25.0), nur
 # openapi.json und API.md sind mit dem korrigierten Schema-Ableiten und dem Falkenrath-Baum neu erzeugt. Steht hier
 # None, gilt die Modulfassung.
-DOKU_FASSUNG = "1.25.1"
+DOKU_FASSUNG = None
 
 
 def openapi(beispiele):

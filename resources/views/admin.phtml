@@ -13,7 +13,7 @@ use Fisharebest\Webtrees\I18N;
  * @var string                                                                  $download_url
  * @var string                                                                  $download_qr
  * @var list<array<string,mixed>>                                               $apps          aus src/Apps.php, je App 'enabled'
- * @var bool                                                                    $hint          Hinweis oben auf der Seite an
+ * @var string                                                                  $hint_role     wer Hinweis und Fusszeilen-Link sieht ('' = alle)
  * @var array<string,string>                                                    $icons         App-Kennung => Logo (nur Apps mit Logo)
  * @var array<string,string>                                                    $device_names  android => "Android-Handy und -Tablet" ...
  * @var string                                                                  $version
@@ -93,11 +93,15 @@ use Fisharebest\Webtrees\I18N;
         <?php endforeach ?>
     </table>
 
-    <div class="form-check mb-1">
-        <input class="form-check-input" type="checkbox" name="hint" value="1" id="hint" <?= $hint ? 'checked' : '' ?>>
-        <label class="form-check-label" for="hint"><?= I18N::translate('Hinweis oben auf der Seite zeigen') ?></label>
+    <div class="mb-1" style="max-width: 50rem;">
+        <label class="form-label" for="hint_role"><?= I18N::translate('Hinweis und Fußzeilen-Link zeigen für') ?></label>
+        <select class="form-select" name="hint_role" id="hint_role" style="max-width: 20rem;">
+            <?php foreach (['' => I18N::translate('alle angemeldeten Benutzer'), 'editor' => I18N::translate('Bearbeiter und höher'), 'moderator' => I18N::translate('Moderatoren und höher'), 'manager' => I18N::translate('Verwalter und höher'), 'admin' => I18N::translate('nur Administratoren'), 'none' => I18N::translate('niemand')] as $value => $label) : ?>
+                <option value="<?= e($value) ?>" <?= $hint_role === $value ? 'selected' : '' ?>><?= $label ?></option>
+            <?php endforeach ?>
+        </select>
     </div>
-    <p class="text-muted small" style="max-width: 50rem;"><?= I18N::translate('Angemeldete Nutzer sehen oben einen Hinweis auf die App für ihr Gerät, bis sie die App verbunden oder den Hinweis weggeklickt haben. Ohne Haken entfällt er für alle; der Link zur Seite „App“ in der Fußzeile bleibt.') ?></p>
+    <p class="text-muted small" style="max-width: 50rem;"><?= I18N::translate('Angemeldete Benutzer sehen oben einen Hinweis auf die App für ihr Gerät, bis sie die App verbunden oder den Hinweis weggeklickt haben, und in der Fußzeile einen Link zur Seite „App“. Die Rolle gilt je Stammbaum. Die Seite „App“ selbst bleibt erreichbar, die Links je Stammbaum stehen oben; wer die Apps nutzen darf, regeln die Rechte in webtrees.') ?></p>
 
     <button type="submit" class="btn btn-primary mb-4"><?= I18N::translate('Speichern') ?></button>
 </form>

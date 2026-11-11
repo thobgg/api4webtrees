@@ -82,8 +82,10 @@ for any user, whatever their rights in webtrees. Default: all trees.
 **Apps:** the apps the module knows (wtAnd, wtWin, wtTux, wtMac, webtrees mobile for iPhone and iPad, and any added by pull request), each with a tick. Unticked apps
 disappear from the “App” page, the note and the footer. Default: all on. See [Apps on the “App” page](#apps-on-the-app-page).
 
-**Note at the top of the page:** untick *Show the note at the top of the page* to switch the note (see below) off for
-all users; the footer link to the “App” page stays. Default: on.
+**Note and footer link:** *Show the note and the footer link to* chooses who sees the note (see below) and the footer
+link to the “App” page: all signed-in users (default), a minimum role in the tree (editors, moderators, managers),
+administrators only, or nobody. Only the display changes – the “App” page stays reachable (the settings link it per
+tree) and who may use the apps is set by the rights in webtrees.
 
 ![Settings page: install the app, family trees for the app, apps, status](docs/einstellungen.png)
 
@@ -197,7 +199,7 @@ The interface is complete since level 30 (1.18): every route needed for everyday
 rare from now on – changes and fixes are collected, pull requests are merged without an immediate release.
 
 The interface only grows. Every release that adds routes or fields raises the **API level** (`apiVersion` in `Info`,
-42 today); existing routes, parameters and fields keep their names, types and meaning. A client built for level N works
+43 today); existing routes, parameters and fields keep their names, types and meaning. A client built for level N works
 with every module from level N on, and an older client keeps working with a newer module – it simply does not see
 the new fields. New fields are optional, so clients should ignore what they do not know. The tests check every answer
 against the documented schema, so a field cannot disappear unnoticed. Where a limit is raised (generations, page

@@ -85,8 +85,10 @@ für keinen Benutzer und unabhängig von seinen Rechten in webtrees. Standard: a
 Abgehakte verschwinden von der Seite „App“, aus dem Hinweis und der Fußzeile. Standard: alle an. Siehe
 [Apps auf der Seite „App“](#apps-auf-der-seite-app).
 
-**Hinweis oben auf der Seite:** ohne Häkchen bei *Hinweis oben auf der Seite zeigen* entfällt der Hinweis (siehe unten)
-für alle Benutzer; der Link zur Seite „App“ in der Fußzeile bleibt. Standard: an.
+**Hinweis und Fußzeilen-Link:** *Hinweis und Fußzeilen-Link zeigen für* legt fest, wer den Hinweis (siehe unten) und den
+Link zur Seite „App“ in der Fußzeile sieht: alle angemeldeten Benutzer (Standard), eine Mindestrolle im Stammbaum
+(Bearbeiter, Moderatoren, Verwalter), nur Administratoren oder niemand. Das ändert nur die Anzeige – die Seite „App“
+bleibt erreichbar (die Einstellungen verlinken sie je Stammbaum), wer die Apps nutzen darf, regeln die Rechte in webtrees.
 
 ![Einstellungsseite: App installieren, Stammbäume für die App, Apps, Status](docs/einstellungen.png)
 
@@ -169,7 +171,7 @@ von Medienobjekten, Startperson festlegen.
 bleiben ab jetzt selten; Änderungen und Fehlerbehebungen werden gesammelt, Pull Requests ohne sofortiges Release gemergt.
 
 **Kompatibilität:** Die Schnittstelle wächst nur. Jedes Release mit neuen Routen oder Feldern erhöht die **API-Stufe**
-(`apiVersion` in `Info`, heute 42); bestehende Routen, Parameter und Felder behalten Name, Typ und Bedeutung. Ein Client
+(`apiVersion` in `Info`, heute 43); bestehende Routen, Parameter und Felder behalten Name, Typ und Bedeutung. Ein Client
 für Stufe N läuft mit jedem Modul ab Stufe N, und ein älterer Client läuft mit einem neueren Modul weiter, er sieht die
 neuen Felder nur nicht. Die Tests prüfen jede Antwort gegen das dokumentierte Schema, ein Feld kann also nicht unbemerkt
 verschwinden. Müsste sich je etwas unverträglich ändern, wäre es eine neue Route, nie eine geänderte.

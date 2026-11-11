@@ -815,7 +815,7 @@ trait JsonBuilders
             'text' => $this->plain($date->display()),
             'year' => $date->gregorianYear(),
             'jd'   => $date->minimumJulianDay(),
-            // Kalender, in dem das Datum geschrieben ist (Stufe n): gregorian, julian, jewish, french, hijri, jalali, roman
+            // Kalender, in dem das Datum geschrieben ist (Stufe 43): gregorian, julian, jewish, french, hijri, jalali, roman
             'calendar' => self::CALENDAR_NAMES[$date->minimumDate()::ESCAPE] ?? 'gregorian',
         ];
 

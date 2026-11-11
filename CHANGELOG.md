@@ -1,15 +1,17 @@
 # Changelog
 
-## Unreleased – level n
-**Calendar of a date (issue #43).** Every `date` object now has `calendar` – the calendar the date is written in
+## 1.26.0 – 2026-11-11
+**Level 43 – calendar of a date (issue #43).** Every `date` object now has `calendar` – the calendar the date is written in
 (`gregorian`, `julian`, `jewish`, `french`, `hijri`, `jalali`, `roman`). `Anniversaries` also gives `date.gedcom`, the
 date as stored (`@#DHEBREW@ 15 TSH 5700`). webtrees already finds an event on the day it falls in any calendar, so a
 person with the same event in two calendars appeared twice and an app could not tell the entries apart. No new route;
 older clients ignore the extra fields.
 
-**Note at the top of the page can be switched off (issue #26).** The settings have a tick *Show the note at the top of
-the page* (on by default). Unticked, signed-in users no longer see the note promoting the app for their device; the
-footer link to the “App” page stays. Until now the only way out was for every user to dismiss it. Not an API change.
+**Who sees the app note and the footer link (issue #26).** The settings have a choice *Show the note and the footer
+link to*: all signed-in users (default, as before), editors and above, moderators and above, managers and above,
+administrators only, or nobody. For a site where only a few people use the apps, the others no longer see app
+promotion. Only the display changes: the “App” page stays reachable, and who may use the apps is still set by the
+rights in webtrees. Not an API change.
 
 ## 1.25.1 – 2026-11-01
 **Documentation only – the module code is the same as 1.25.0** (it still reports `1.25.0`; no new ZIP, keep using

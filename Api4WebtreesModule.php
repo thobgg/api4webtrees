@@ -81,7 +81,7 @@ class Api4WebtreesModule extends AbstractModule implements ModuleCustomInterface
     // unter diesem Namen liegen bei Bestandsinstallationen noch die Einstellungen (siehe boot()).
     public const string OLD_MODULE_NAME = '_webtreesand-api_';
     // Was welche Stufe gebracht hat, steht in docs/API.md (Spalte "since") und in CHANGELOG.md.
-    public const int    API_VERSION = 42;
+    public const int    API_VERSION = 43;
 
     /** Benutzereinstellung je Baum: die Merkliste als Liste von Personenkennungen. */
     private const string BOOKMARKS_PREF = 'api4webtrees_bookmarks';
@@ -114,8 +114,10 @@ class Api4WebtreesModule extends AbstractModule implements ModuleCustomInterface
     // Moduleinstellung: Apps aus src/Apps.php, die der Verwalter abgeschaltet hat (Kennungen mit Komma). Leer = alle an.
     private const string APPS_OFF_SETTING   = 'apps_off';
 
-    // Moduleinstellung: '1' = der Verwalter hat den Hinweis oben auf der Seite fuer alle abgeschaltet. Leer = an.
-    private const string HINT_OFF_SETTING   = 'hint_off';
+    // Moduleinstellung: wer den Hinweis oben auf der Seite und den Fusszeilen-Link zur Seite "App" sieht (Issue #26).
+    // Leer = alle angemeldeten Benutzer, sonst die Mindestrolle im Baum oder "none".
+    private const string HINT_ROLE_SETTING  = 'hint_role';
+    private const array  HINT_ROLES         = ['', 'editor', 'moderator', 'manager', 'admin', 'none'];
 
     private const int PAGE_SIZE           = 50;
     private const int MEDIA_PAGE_SIZE     = 60;
@@ -251,7 +253,7 @@ class Api4WebtreesModule extends AbstractModule implements ModuleCustomInterface
 
     public function customModuleVersion(): string
     {
-        return '1.25.0';
+        return '1.26.0';
     }
 
     public function customModuleLatestVersionUrl(): string
@@ -314,7 +316,7 @@ class Api4WebtreesModule extends AbstractModule implements ModuleCustomInterface
     {
         $tree = Validator::attributes($request)->treeOptional();
 
-        if ($tree === null || !Auth::check() || !$this->treeEnabled($tree)) {
+        if ($tree === null || !Auth::check() || !$this->treeEnabled($tree) || !$this->hintVisible($tree)) {
             return '';
         }
 
@@ -326,7 +328,7 @@ class Api4WebtreesModule extends AbstractModule implements ModuleCustomInterface
 
         return view($this->name() . '::footer', [
             'app_url'   => $this->actionUrl('App', $tree->name()),
-            'hint'      => $hint_app !== null && $this->getPreference(self::HINT_OFF_SETTING) !== '1'
+            'hint'      => $hint_app !== null
                 && Auth::user()->getPreference(self::hintKey($request)) === '' && $action !== 'App' && $action !== 'Connect',
             'hint_app'  => $hint_app,
             'hint_url'  => $this->actionUrl('HintOff', $tree->name()),
@@ -335,6 +337,22 @@ class Api4WebtreesModule extends AbstractModule implements ModuleCustomInterface
             'pc_app'    => Apps::matching($apps, $device, 'pc')[0] ?? Apps::kind($apps, 'pc')[0] ?? null,
             'phone_app' => Apps::matching($apps, $device, 'phone')[0] ?? Apps::kind($apps, 'phone')[0] ?? null,
         ]);
+    }
+
+    /**
+     * Sieht der angemeldete Benutzer Hinweis und Fusszeilen-Link? Nur Anzeige - die Seite "App" und die Schnittstelle
+     * bleiben fuer alle erreichbar, die Rechte regelt webtrees.
+     */
+    private function hintVisible(Tree $tree): bool
+    {
+        return match ($this->getPreference(self::HINT_ROLE_SETTING)) {
+            ''          => true,
+            'editor'    => Auth::isEditor($tree),
+            'moderator' => Auth::isModerator($tree),
+            'manager'   => Auth::isManager($tree),
+            'admin'     => Auth::isAdmin(),
+            default     => false,
+        };
     }
 
     /**

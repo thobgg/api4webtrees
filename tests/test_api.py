@@ -1490,7 +1490,7 @@ class Schreiben(unittest.TestCase):
         self.assertLessEqual(len(a.json["data"]), a.json["total"])
 
     def test_jahrestag_anderer_kalender(self):
-        """Stufe n: date.calendar nennt den Kalender, Jahrestage bringen das GEDCOM-Datum (Issue #43)."""
+        """Stufe 43: date.calendar nennt den Kalender, Jahrestage bringen das GEDCOM-Datum (Issue #43)."""
         # Heutiger Tag im julianischen Kalender: gregorianisch minus 13 Tage (gilt 1900-2100)
         jul = datetime.date.today() - datetime.timedelta(days=13)
         datum = f"@#DJULIAN@ {jul.day} {'JAN FEB MAR APR MAY JUN JUL AUG SEP OCT NOV DEC'.split()[jul.month - 1]} 1850"
@@ -1572,9 +1572,9 @@ class Schreiben(unittest.TestCase):
         self.assertIn("wttux", alle)
         csrf = re.search(r'name="_csrf" value="([^"]+)"', formular).group(1)
 
-        def speichern(apps, hinweis=True):
-            daten = urllib.parse.urlencode([("_csrf", csrf), ("trees[]", "testbaum"), ("trees[]", "geheim")] + [("apps[]", a) for a in apps]
-                                           + ([("hint", "1")] if hinweis else [])).encode()
+        def speichern(apps, rolle=""):
+            daten = urllib.parse.urlencode([("_csrf", csrf), ("trees[]", "testbaum"), ("trees[]", "geheim"), ("hint_role", rolle)]
+                                           + [("apps[]", a) for a in apps]).encode()
             req = urllib.request.Request(admin_url, data=daten, method="POST")
             req.add_header("Content-Type", "application/x-www-form-urlencoded")
             return s._senden(req)
@@ -1596,24 +1596,36 @@ class Schreiben(unittest.TestCase):
         seite = s._senden(urllib.request.Request(s.url("/module/_api4webtrees_/App/testbaum"))).text
         self.assertIn("wtTux", seite)
 
-        # Issue #26: der Verwalter schaltet den Hinweis oben fuer alle ab, der Link in der Fusszeile bleibt.
-        self.assertIn('name="hint" value="1" id="hint" checked', formular)
-        uid = umgebung.sql("SELECT user_id FROM wt_user WHERE user_name = 'admin'")[0][0]
-        umgebung.sql("DELETE FROM wt_user_setting WHERE user_id = ? AND setting_name = 'webtreesand_hint'", uid)
+        # Issue #26: wer Hinweis und Fusszeilen-Link sieht, waehlt der Verwalter nach Rolle; Vorgabe alle.
+        self.assertIn('<option value="" selected>', formular)
 
-        def baumseite():
-            return s._senden(urllib.request.Request(s.url("/tree/testbaum"))).text
+        def hinweis_frei(name):
+            uid = umgebung.sql("SELECT user_id FROM wt_user WHERE user_name = ?", name)[0][0]
+            umgebung.sql("DELETE FROM wt_user_setting WHERE user_id = ? AND setting_name = 'webtreesand_hint'", uid)
 
-        self.assertIn("wt-webtreesand-hint", baumseite())
+        def baumseite(sitzung):
+            return sitzung._senden(urllib.request.Request(sitzung.url("/tree/testbaum"))).text
+
+        m = U.sitzung("mitglied")
+        for name in ("admin", "mitglied"):
+            hinweis_frei(name)
+        self.assertIn("wt-webtreesand-hint", baumseite(m))
+        self.assertIn("wt-footer-webtreesand", baumseite(m))
         try:
-            speichern(alle, hinweis=False)
-            seite = baumseite()
-            self.assertNotIn("wt-webtreesand-hint", seite)
-            self.assertIn("wt-footer-webtreesand", seite)
-            self.assertIn('id="hint" >', s._senden(urllib.request.Request(admin_url)).text)
+            speichern(alle, rolle="manager")
+            self.assertNotIn("wt-webtreesand-hint", baumseite(m))
+            self.assertNotIn("wt-footer-webtreesand", baumseite(m))
+            self.assertIn("wt-webtreesand-hint", baumseite(s))
+            self.assertIn('<option value="manager" selected>', s._senden(urllib.request.Request(admin_url)).text)
+            # Die Seite "App" bleibt erreichbar
+            self.assertIn("wtAnd", m._senden(urllib.request.Request(m.url("/module/_api4webtrees_/App/testbaum"))).text)
+            speichern(alle, rolle="none")
+            self.assertNotIn("wt-footer-webtreesand", baumseite(s))
+            speichern(alle, rolle="unsinn")
+            self.assertIn("wt-footer-webtreesand", baumseite(m))
         finally:
             speichern(alle)
-        self.assertIn("wt-webtreesand-hint", baumseite())
+        self.assertIn("wt-webtreesand-hint", baumseite(m))
 
     def test_ungueltiger_koppelcode(self):
         s = U.sitzung()
