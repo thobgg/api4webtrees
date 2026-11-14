@@ -756,6 +756,9 @@ class GedcomL(unittest.TestCase):
         self.assertEqual((2026, 2026), (aufgabe["completed"]["year"], aufgabe["reminder"]["year"]))
         fam = s.get("Family", "gedcoml", xref="F1").json
         self.assertEqual(["AAAABBBBCCCCDDDDEEEEFFFF00001111"], fam["uids"])
+        # Notiz der Quelle als Verweis auf einen Notiz-Datensatz (1 NOTE @N1@): der Text der Notiz, nicht der Zeiger
+        # (bis 1.26.0 fehlte in ReadActions der Import von Note)
+        self.assertEqual(["Hofgeschichte"], s.get("Source", "gedcoml", xref="S1").json["notes"])
         # _STAT kommt als Fakt mit uebersetztem Wert (wie webtrees ihn zeigt)
         self.assertNotEqual("", next(f for f in fam["facts"] if f["tag"] == "_STAT")["value"])
         self.assertEqual(("6", None), (fam["tasks"][0]["priority"], fam["tasks"][0]["description"]))

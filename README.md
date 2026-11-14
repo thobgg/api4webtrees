@@ -24,7 +24,7 @@ of a gravestone or a corrected date, arrive as pending changes in the same webtr
 
 | | |
 | - | - |
-| webtrees | 2.2.x (tested with 2.2.6); prepared for 2.3 |
+| webtrees | 2.2.x (tested with 2.2.6); also runs on the development state of 2.3 (main of 2026-11-04) – 2.3 may still change |
 | PHP | 8.3 or newer (as required by webtrees 2.2) |
 | Access | read and write, always with the rights of the signed-in webtrees user |
 | License | GPL-3.0 |

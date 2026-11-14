@@ -25,7 +25,7 @@ webtrees-Installation.
 
 | | |
 | - | - |
-| webtrees | 2.2.x (mit 2.2.6 getestet); für 2.3 vorbereitet |
+| webtrees | 2.2.x (mit 2.2.6 getestet); läuft auch mit dem Entwicklungsstand von 2.3 (main vom 04.11.2026) – 2.3 kann sich noch ändern |
 | PHP | 8.3 oder neuer (wie von webtrees 2.2 verlangt) |
 | Zugriff | lesen und schreiben, immer mit den Rechten des angemeldeten webtrees-Benutzers |
 | Lizenz | GPL-3.0 |

@@ -1,7 +1,8 @@
 # Changelog
 
-## Unreleased
-**Runs on webtrees 2.3 (main) as well as 2.2.6.** webtrees main (2.3.0-dev, 2026-11-04) removed or retyped several things
+## 1.27.0 – 2026-11-14
+**Runs on webtrees 2.2.6 and on the development state of 2.3.** Tested against webtrees main of 2026-11-04 (2.3.0-dev);
+2.3 is not released and may still change. webtrees main removed or retyped several things
 the module used: `Auth::PRIV_*` and `Individual::sex()` became enums (`AccessLevel`, `Sex`), `I18N::comparator()`,
 `I18N::activeLocales()`, `Fact::sortFacts()`, `ImageFactory::thumbnailNeedsWatermark()` and the calendar `ESCAPE` constants
 are gone, the control-panel request handlers moved, Intervention Image is no longer bundled, and the `response()` helper
@@ -14,6 +15,9 @@ is missing. No change to the API.
 HTML error page. A tree that does not exist or that the user may not see gives `{"ok": false, "error": "not-found",
 "status": 404}` (a guest cannot tell whether a private tree exists); an unknown action gives `not-found` as well, other
 rejections `bad-request` 400 or `forbidden` 403 with webtrees' status. Apps that parsed the HTML page (none known) must read the JSON.
+
+**Fix:** the notes of a source that point to a note record (`1 NOTE @N1@`) came as the raw pointer instead of the note's
+text in `Source` (missing class import). Test added.
 
 The test setup (`tests/umgebung.py`) now sends a `base_url` to the setup wizard, which webtrees main requires.
 
