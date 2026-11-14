@@ -9,6 +9,7 @@ use Fisharebest\Webtrees\DB;
 use Fisharebest\Webtrees\Elements\CustomElement;
 use Fisharebest\Webtrees\Gedcom;
 use Fisharebest\Webtrees\GedcomRecord;
+use Fisharebest\Webtrees\Http\Exceptions\HttpException;
 use Fisharebest\Webtrees\Http\RequestHandlers\ModuleAction;
 use Fisharebest\Webtrees\I18N;
 use Fisharebest\Webtrees\Module\AbstractModule;
@@ -37,6 +38,7 @@ use function is_file;
 use function is_string;
 use function json_decode;
 use function preg_match;
+use function preg_quote;
 use function response;
 use function str_contains;
 use function str_starts_with;
@@ -146,6 +148,8 @@ class Api4WebtreesModule extends AbstractModule implements ModuleCustomInterface
     private const int ACCEPT_ALL_LIMIT = 10000;
     // Bilder: Vorschau in Listen (quadratisch zugeschnitten) und in der Medienansicht (eingepasst), Kantenlaenge in Pixeln
     private const int THUMB_SIZE   = 200;
+    // Fehlercodes, wenn webtrees selbst eine Anfrage an das Modul abweist (HttpException) - sonst "http-error"
+    private const array HTTP_ERROR_CODES = [400 => 'bad-request', 403 => 'forbidden', 404 => 'not-found', 405 => 'method-not-allowed'];
     private const int PREVIEW_SIZE = 400;
     // Art eines Mediums (OBJE:FILE:FORM:TYPE), wie webtrees sie zur Auswahl stellt
     private const array MEDIA_TYPES = ['photo', 'document', 'certificate', 'book', 'newspaper', 'card', 'map', 'tombstone', 'audio', 'video', 'electronic', 'film', 'fiche', 'magazine', 'manuscript', 'painting', 'other'];
@@ -356,6 +360,20 @@ class Api4WebtreesModule extends AbstractModule implements ModuleCustomInterface
     }
 
     /**
+     * Nennt die Adresse einen Stammbaum, z. B. .../module/_api4webtrees_/Individuals/<tree>?
+     */
+    private function routeNamesTree(ServerRequestInterface $request): bool
+    {
+        $route = Validator::queryParams($request)->string('route', '');
+
+        if ($route === '') {
+            $route = $request->getUri()->getPath();
+        }
+
+        return preg_match('#/module/' . preg_quote($this->name(), '#') . '/[^/]+/[^/]+#', $route) === 1;
+    }
+
+    /**
      * Darf die App diesen Stammbaum erreichen? Ohne gespeicherte Einstellung: ja (wie vor Version 0.8).
      */
     private function treeEnabled(Tree $tree): bool
@@ -394,7 +412,24 @@ class Api4WebtreesModule extends AbstractModule implements ModuleCustomInterface
             }
         }
 
-        return $handler->handle($request);
+        try {
+            return $handler->handle($request);
+        } catch (HttpException $e) {
+            if ($request->getAttribute('module') !== $this->name()) {
+                throw $e;
+            }
+
+            // webtrees weist die Anfrage ab, bevor das Modul sie sieht - als JSON wie alle anderen Fehler des Moduls,
+            // nicht als HTML-Seite (die ab 2.3 einen Anmelde-Link samt Anfrage-URL enthaelt).
+            // Haeufigster Fall: Der Baum in der Adresse ist unbekannt oder fuer diesen Benutzer unsichtbar - webtrees setzt
+            // "tree" dann auf null und der Validator meldet 400. Beides als not-found: ein Gast erfaehrt so nicht, ob es
+            // einen privaten Baum gibt.
+            if ($request->getAttribute('tree') === null && $this->routeNamesTree($request)) {
+                return $this->error(404, 'not-found');
+            }
+
+            return $this->error($e->getCode(), self::HTTP_ERROR_CODES[$e->getCode()] ?? 'http-error');
+        }
     }
 
     /**
@@ -402,7 +437,7 @@ class Api4WebtreesModule extends AbstractModule implements ModuleCustomInterface
      */
     private function matchLanguage(string $wanted): string|null
     {
-        $tags    = array_map(static fn ($locale): string => $locale->languageTag(), I18N::activeLocales());
+        $tags    = Compat::activeLanguageTags();
         $wanted  = strtolower($wanted);
         $primary = explode('-', $wanted)[0];
 

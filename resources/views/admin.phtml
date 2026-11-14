@@ -2,8 +2,6 @@
 
 declare(strict_types=1);
 
-use Fisharebest\Webtrees\Http\RequestHandlers\ControlPanel;
-use Fisharebest\Webtrees\Http\RequestHandlers\ModulesAllPage;
 use Fisharebest\Webtrees\I18N;
 
 /**
@@ -23,9 +21,15 @@ use Fisharebest\Webtrees\I18N;
  * @var int                                                                     $max_upload
  */
 
+// webtrees 2.2: Http\RequestHandlers\ControlPanel und ModulesAllPage - ab 2.3: Http\Controllers\ControlPanel und ModulesAll (Commit 58f2f02297)
+$old = 'Fisharebest\\Webtrees\\Http\\RequestHandlers\\';
+$new = 'Fisharebest\\Webtrees\\Http\\Controllers\\';
+
+[$control_panel, $modules] = class_exists($old . 'ControlPanel') ? [$old . 'ControlPanel', $old . 'ModulesAllPage'] : [$new . 'ControlPanel', $new . 'ModulesAll'];
+
 ?>
 
-<?= view('components/breadcrumbs', ['links' => [route(ControlPanel::class) => I18N::translate('Control panel'), route(ModulesAllPage::class) => I18N::translate('Modules'), $title]]) ?>
+<?= view('components/breadcrumbs', ['links' => [route($control_panel) => I18N::translate('Control panel'), route($modules) => I18N::translate('Modules'), $title]]) ?>
 
 <h1><?= e($title) ?></h1>
 

@@ -119,7 +119,7 @@ class Umgebung:
 
         # Einrichtungsassistent, Schritt 6 - wie nas4webtrees-entry.py run_setup_wizard()
         felder = {
-            "lang": "de", "tblpfx": "wt_", "baseurl": "", "dbtype": "sqlite", "dbhost": "", "dbport": "",
+            "lang": "de", "tblpfx": "wt_", "baseurl": f"http://127.0.0.1:{self.port}", "dbtype": "sqlite", "dbhost": "", "dbport": "",
             "dbuser": "", "dbpass": "", "dbname": "webtrees", "wtname": "Admin", "wtuser": "admin",
             "wtpass": PASSWORT, "wtemail": "admin@example.invalid", "step": "6",
         }

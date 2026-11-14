@@ -30,7 +30,6 @@ use function array_keys;
 use function array_map;
 use function array_pad;
 use function array_slice;
-use function class_exists;
 use function explode;
 use function implode;
 use function html_entity_decode;
@@ -79,7 +78,7 @@ trait JsonBuilders
             }
         }
 
-        return $individual->sex();
+        return Compat::sex($individual);
     }
 
     /**
@@ -135,7 +134,7 @@ trait JsonBuilders
             // sehen duerften - fuer Buecher zum Weitergeben ("nur, was Besucher sehen")
             'access'     => $this->zugang($individual),
             // wer den Namen sehen darf - bei Lebenden haengt das an der Baumeinstellung "Namen Lebender zeigen"
-            'nameAccess' => $individual->canShowName(Auth::PRIV_PRIVATE) ? 'visitor' : ($individual->canShowName(Auth::PRIV_USER) ? 'member' : 'manager'),
+            'nameAccess' => $individual->canShowName(Compat::visitor()) ? 'visitor' : ($individual->canShowName(Compat::member()) ? 'member' : 'manager'),
             'restricted' => $this->eingeschraenkt($individual),
             'lifespan'   => $this->plain($individual->lifespan()),
             'birth'      => $this->eventJson($individual->getBirthDate(), $individual->getBirthPlace()),
@@ -174,7 +173,7 @@ trait JsonBuilders
 
         $crop = $this->portraitCrop($individual, $media_file);
 
-        if ($crop !== null && !Registry::imageFactory()->thumbnailNeedsWatermark($media_file, Auth::user())) {
+        if ($crop !== null && !Compat::needsWatermark($media_file, Auth::user())) {
             // crop im Adresstext: ein neuer Ausschnitt ist eine neue Adresse - Zwischenspeicher zeigen nichts Altes.
             return $this->actionUrl('Portrait', $individual->tree()->name(), ['xref' => $individual->xref(), 'crop' => substr(md5((string) json_encode($crop)), 0, 8)]);
         }
@@ -325,7 +324,7 @@ trait JsonBuilders
     private function factsJson(GedcomRecord $record): array
     {
         $tree  = $record->tree();
-        $facts = $this->sortFacts($record->facts());
+        $facts = Compat::sortFacts($record->facts());
         $data  = [];
 
         foreach ($facts as $fact) {
@@ -419,11 +418,11 @@ trait JsonBuilders
      */
     private function zugang(GedcomRecord|Fact $x): string
     {
-        if ($x->canShow(Auth::PRIV_PRIVATE)) {
+        if ($x->canShow(Compat::visitor())) {
             return 'visitor';
         }
 
-        return $x->canShow(Auth::PRIV_USER) ? 'member' : 'manager';
+        return $x->canShow(Compat::member()) ? 'member' : 'manager';
     }
 
     /**
@@ -434,12 +433,12 @@ trait JsonBuilders
      */
     private function eingeschraenkt(Individual $individual): array
     {
-        if (!$individual->canShow(Auth::PRIV_PRIVATE)) {
+        if (!$individual->canShow(Compat::visitor())) {
             return [];
         }
         $tags = [];
         foreach ($individual->facts(['BIRT', 'CHR', 'BAPM', 'DEAT', 'BURI', 'CREM', 'OCCU']) as $fact) {
-            if (!$fact->canShow(Auth::PRIV_PRIVATE)) {
+            if (!$fact->canShow(Compat::visitor())) {
                 $tags[] = $this->shortTag($fact->tag());
             }
         }
@@ -612,7 +611,7 @@ trait JsonBuilders
     {
         $element = Registry::elementFactory()->make('INDI:*:_ASSO:RELA');
         $element = $element instanceof RelationIsDescriptor ? $element : new RelationIsDescriptor('');
-        $values  = $element->values($sex) + $element->values('U');
+        $values  = $element->values(Compat::sexArgument($sex)) + $element->values(Compat::sexArgument('U'));
         $key     = mb_strtolower(trim($rela));
 
         return $values[$key] ?? ($role === 'other' ? $rela : $values[$role] ?? $rela);
@@ -816,7 +815,7 @@ trait JsonBuilders
             'year' => $date->gregorianYear(),
             'jd'   => $date->minimumJulianDay(),
             // Kalender, in dem das Datum geschrieben ist (Stufe 43): gregorian, julian, jewish, french, hijri, jalali, roman
-            'calendar' => self::CALENDAR_NAMES[$date->minimumDate()::ESCAPE] ?? 'gregorian',
+            'calendar' => self::CALENDAR_NAMES[Compat::calendarEscape($date->minimumDate())] ?? 'gregorian',
         ];
 
         // Bei Ereignissen zusaetzlich das Datum, wie es im GEDCOM steht ("ABT 1850", "9 NOV 1957") - damit ein
@@ -1129,24 +1128,6 @@ trait JsonBuilders
             'notes'   => $notes,
             'media'   => $media,
         ];
-    }
-
-    /**
-     * webtrees 2.2: Fact::sortFacts() - ab 2.3: FactSortService::sort().
-     *
-     * @param Collection<int,Fact> $facts
-     *
-     * @return Collection<int,Fact>
-     */
-    private function sortFacts(Collection $facts): Collection
-    {
-        $service = 'Fisharebest\\Webtrees\\Services\\FactSortService';
-
-        if (class_exists($service)) {
-            return Registry::container()->get($service)->sort($facts);
-        }
-
-        return Fact::sortFacts($facts);
     }
 
     /**

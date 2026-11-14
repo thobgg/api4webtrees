@@ -327,8 +327,8 @@ trait MessageActions
             if (
                 $user->id() === Auth::id()
                 || !$user->getPreference(UserInterface::PREF_IS_ACCOUNT_APPROVED)
-                || ($tree->private() && Auth::accessLevel($tree, $user) > Auth::PRIV_USER)
-                || $contact === '' || $contact === MessageService::CONTACT_METHOD_NONE
+                || ($tree->private() && Compat::levelValue(Auth::accessLevel($tree, $user)) > Compat::MEMBER)
+                || $contact === '' || $contact === 'none' // MessageService::CONTACT_METHOD_NONE (2.2), Enums\ContactMethod::None (2.3)
             ) {
                 continue;
             }

@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased
+**Runs on webtrees 2.3 (main) as well as 2.2.6.** webtrees main (2.3.0-dev, 2026-11-04) removed or retyped several things
+the module used: `Auth::PRIV_*` and `Individual::sex()` became enums (`AccessLevel`, `Sex`), `I18N::comparator()`,
+`I18N::activeLocales()`, `Fact::sortFacts()`, `ImageFactory::thumbnailNeedsWatermark()` and the calendar `ESCAPE` constants
+are gone, the control-panel request handlers moved, Intervention Image is no longer bundled, and the `response()` helper
+takes an enum status code. All version switches live in the new `src/Compat.php`; each one checks at run time what the
+installation offers, so the same ZIP works on both versions. The portrait crop uses GD directly when Intervention Image
+is missing. No change to the API.
+
+**Behaviour change, also on 2.2.6:** when webtrees itself rejects a request to the module before the module sees it
+(an `HttpException`), the module now answers with JSON like all its other errors instead of letting webtrees render its
+HTML error page. A tree that does not exist or that the user may not see gives `{"ok": false, "error": "not-found",
+"status": 404}` (a guest cannot tell whether a private tree exists); an unknown action gives `not-found` as well, other
+rejections `bad-request` 400 or `forbidden` 403 with webtrees' status. Apps that parsed the HTML page (none known) must read the JSON.
+
+The test setup (`tests/umgebung.py`) now sends a `base_url` to the setup wizard, which webtrees main requires.
+
 ## 1.26.0 – 2026-11-11
 **Level 43 – calendar of a date (issue #43).** Every `date` object now has `calendar` – the calendar the date is written in
 (`gregorian`, `julian`, `jewish`, `french`, `hijri`, `jalali`, `roman`). `Anniversaries` also gives `date.gedcom`, the

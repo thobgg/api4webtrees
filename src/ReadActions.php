@@ -40,33 +40,61 @@ use Illuminate\Database\Query\JoinClause;
 use Illuminate\Support\Collection;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use GdImage;
 use InvalidArgumentException;
 use Intervention\Image\Drivers\Gd\Driver as GdDriver;
 use Intervention\Image\Drivers\Imagick\Driver as ImagickDriver;
 use Intervention\Image\ImageManager;
+use RuntimeException;
 use Throwable;
 
 use function array_filter;
 use function array_flip;
 use function array_keys;
 use function array_map;
-use function array_values;
-use function str_contains;
 use function array_unique;
+use function array_values;
+use function class_exists;
 use function count;
-use function extension_loaded;
-use function json_encode;
+use function exif_read_data;
 use function explode;
+use function extension_loaded;
+use function fclose;
+use function fopen;
+use function function_exists;
+use function fwrite;
+use function imagealphablending;
+use function imagecopyresampled;
+use function imagecreatefromstring;
+use function imagecreatetruecolor;
+use function imageflip;
+use function imagegif;
+use function imagejpeg;
+use function imagepng;
+use function imagerotate;
+use function imagesavealpha;
+use function imagesx;
+use function imagesy;
+use function imagewebp;
 use function implode;
 use function in_array;
+use function intdiv;
+use function is_array;
+use function is_string;
+use function json_encode;
 use function max;
 use function mb_stripos;
 use function min;
+use function ob_get_clean;
+use function ob_start;
 use function preg_match;
 use function preg_quote;
 use function preg_split;
 use function response;
+use function rewind;
+use function str_contains;
 use function str_replace;
+use function str_starts_with;
 use function trim;
 use function usort;
 
@@ -335,7 +363,7 @@ trait ReadActions
         $media_file = $individual->findHighlightedMediaFile();
         $crop       = $media_file !== null && $media_file->isImage() ? $this->portraitCrop($individual, $media_file) : null;
 
-        if ($media_file === null || $crop === null || Registry::imageFactory()->thumbnailNeedsWatermark($media_file, Auth::user())) {
+        if ($media_file === null || $crop === null || Compat::needsWatermark($media_file, Auth::user())) {
             return $this->error(404, 'no-portrait');
         }
 
@@ -346,24 +374,134 @@ trait ReadActions
         try {
             $key = implode(':', ['api4webtrees-portrait', $tree->name(), $path, (string) $filesystem->lastModified($path), (string) json_encode($crop), (string) $size]);
 
-            $data = Registry::cache()->file()->remember($key, static function () use ($filesystem, $path, $crop, $size, $media_file): string {
-                $manager = extension_loaded('imagick') ? new ImageManager(new ImagickDriver()) : new ImageManager(new GdDriver());
-                $image   = $manager->read($filesystem->readStream($path));
-
-                // GEDCOM 7: fehlende Angaben sind 0 bzw. bis zum Bildrand; was ueber den Rand reicht, endet dort.
-                $left   = min($crop['left'] ?? 0, $image->width() - 1);
-                $top    = min($crop['top'] ?? 0, $image->height() - 1);
-                $width  = min($crop['width'] ?? $image->width(), $image->width() - $left);
-                $height = min($crop['height'] ?? $image->height(), $image->height() - $top);
-
-                return $image->crop($width, $height, $left, $top)->cover($size, $size)
-                    ->encodeByMediaType($media_file->mimeType(), quality: 85)->toString();
-            }, 2592000);
+            $data = Registry::cache()->file()->remember($key, fn (): string => $this->portraitImage($filesystem->read($path), $crop, $size, $media_file->mimeType()), 2592000);
         } catch (Throwable) {
             return $this->error(404, 'no-portrait');
         }
 
-        return response($data, 200, ['content-type' => $media_file->mimeType(), 'cache-control' => 'private, max-age=86400']);
+        // Statuscode als benanntes Argument auslassen: 2.2 int, ab 2.3 Enums\HttpStatusCode - der Standard (200) passt auf beiden
+        return response($data, headers: ['content-type' => $media_file->mimeType(), 'cache-control' => 'private, max-age=86400']);
+    }
+
+    /**
+     * Ausschnitt eines Bildes als quadratisches Vorschaubild (size x size) im Format der Datei. webtrees 2.2 bringt
+     * Intervention Image mit (GD oder Imagick), ab 2.3 nur noch GD (Commit 37fefe8425, 10.07.2026) - dann direkt mit GD.
+     *
+     * @param array<string,int> $crop
+     */
+    private function portraitImage(string $binary, array $crop, int $size, string $mime_type): string
+    {
+        if (class_exists(ImageManager::class)) {
+            $manager = extension_loaded('imagick') ? new ImageManager(new ImagickDriver()) : new ImageManager(new GdDriver());
+            $image   = $manager->read($binary);
+
+            [$left, $top, $width, $height] = $this->portraitRectangle($crop, $image->width(), $image->height());
+
+            return $image->crop($width, $height, $left, $top)->cover($size, $size)
+                ->encodeByMediaType($mime_type, quality: 85)->toString();
+        }
+
+        $image = imagecreatefromstring($binary);
+
+        if (!$image instanceof GdImage) {
+            throw new RuntimeException('Bild nicht lesbar');
+        }
+
+        $image = $this->autoRotate($image, $binary);
+
+        [$left, $top, $width, $height] = $this->portraitRectangle($crop, imagesx($image), imagesy($image));
+
+        // wie cover(): den Ausschnitt mittig auf ein Quadrat bringen, dann auf size x size skalieren
+        $side  = min($width, $height);
+        $left += intdiv($width - $side, 2);
+        $top  += intdiv($height - $side, 2);
+
+        $target = imagecreatetruecolor($size, $size);
+        imagealphablending($target, false);
+        imagesavealpha($target, true);
+        imagecopyresampled($target, $image, 0, 0, $left, $top, $size, $size, $side, $side);
+
+        ob_start();
+        $written = match ($mime_type) {
+            'image/jpeg' => imagejpeg($target, null, 85),
+            'image/png'  => imagepng($target),
+            'image/gif'  => imagegif($target),
+            'image/webp' => function_exists('imagewebp') && imagewebp($target, null, 85),
+            default      => false,
+        };
+        $data = ob_get_clean();
+
+        if ($written !== true || !is_string($data)) {
+            throw new RuntimeException('Bild nicht schreibbar: ' . $mime_type);
+        }
+
+        return $data;
+    }
+
+    /**
+     * EXIF-Orientierung anwenden (Handyfotos hochkant): Intervention Image tat das beim Lesen selbst, GD nicht -
+     * dieselbe Zuordnung wie webtrees' ImageFactory::autoRotateImage(). Nur JPEG traegt EXIF.
+     */
+    private function autoRotate(GdImage $image, string $binary): GdImage
+    {
+        if (!function_exists('exif_read_data') || !str_starts_with($binary, "\xFF\xD8")) {
+            return $image;
+        }
+
+        $stream = fopen('php://temp', 'r+b');
+
+        if ($stream === false) {
+            return $image;
+        }
+
+        fwrite($stream, $binary);
+        rewind($stream);
+        $exif = @exif_read_data($stream, 'IFD0');
+        fclose($stream);
+
+        $orientation = is_array($exif) ? (int) ($exif['Orientation'] ?? 1) : 1;
+
+        switch ($orientation) {
+            case 2:
+                imageflip($image, IMG_FLIP_HORIZONTAL);
+                return $image;
+            case 3:
+                return imagerotate($image, 180, 0) ?: $image;
+            case 4:
+                imageflip($image, IMG_FLIP_VERTICAL);
+                return $image;
+            case 5:
+                $image = imagerotate($image, -90, 0) ?: $image;
+                imageflip($image, IMG_FLIP_HORIZONTAL);
+                return $image;
+            case 6:
+                return imagerotate($image, -90, 0) ?: $image;
+            case 7:
+                $image = imagerotate($image, 90, 0) ?: $image;
+                imageflip($image, IMG_FLIP_HORIZONTAL);
+                return $image;
+            case 8:
+                return imagerotate($image, 90, 0) ?: $image;
+            default:
+                return $image;
+        }
+    }
+
+    /**
+     * GEDCOM 7: fehlende Angaben sind 0 bzw. bis zum Bildrand; was ueber den Rand reicht, endet dort.
+     *
+     * @param array<string,int> $crop
+     *
+     * @return array{int,int,int,int} links, oben, Breite, Hoehe
+     */
+    private function portraitRectangle(array $crop, int $image_width, int $image_height): array
+    {
+        $left   = min($crop['left'] ?? 0, $image_width - 1);
+        $top    = min($crop['top'] ?? 0, $image_height - 1);
+        $width  = min($crop['width'] ?? $image_width, $image_width - $left);
+        $height = min($crop['height'] ?? $image_height, $image_height - $top);
+
+        return [$left, $top, $width, $height];
     }
 
     /**
@@ -516,12 +654,12 @@ trait ReadActions
     private function availableModules(Tree $tree, UserInterface $user): array
     {
         $module_service = Registry::container()->get(ModuleService::class);
-        $user_level     = Auth::accessLevel($tree, $user);
+        $user_level     = Compat::levelValue(Auth::accessLevel($tree, $user));
 
         return $module_service->all()
             ->filter(static fn (ModuleInterface $module): bool => $module_service->componentsWithAccess()
                 ->filter(static fn (string $interface): bool => $module instanceof $interface)
-                ->every(static fn (string $interface): bool => $module->accessLevel($tree, $interface) >= $user_level))
+                ->every(static fn (string $interface): bool => Compat::levelValue($module->accessLevel($tree, $interface)) >= $user_level))
             ->map(static fn (ModuleInterface $module): string => $module->name())
             ->sort()
             ->values()
@@ -1102,7 +1240,7 @@ trait ReadActions
         $offset = ($page - 1) * self::EXPORT_PAGE_SIZE;
 
         // Dieselbe Stufe, die webtrees fuer Verknuepfungen nimmt (siehe Individual::childFamilies()).
-        $link_level = $tree->getPreference('SHOW_PRIVATE_RELATIONSHIPS') === '1' ? Auth::PRIV_HIDE : Auth::accessLevel($tree);
+        $link_level = $tree->getPreference('SHOW_PRIVATE_RELATIONSHIPS') === '1' ? Compat::hidden() : Auth::accessLevel($tree);
 
         $individual_count = DB::table('individuals')->where('i_file', '=', $tree->id())->count();
         $family_count     = DB::table('families')->where('f_file', '=', $tree->id())->count();
@@ -1255,13 +1393,15 @@ trait ReadActions
 
         $uses = $this->linkCounts($tree, 'SOUR');
 
+        $comparator = Compat::comparator();
+
         $sources = DB::table('sources')
             ->where('s_file', '=', $tree->id())
             ->get()
             ->map(Registry::sourceFactory()->mapper($tree))
             ->filter(static fn ($source): bool => $source instanceof Source && $source->canShow())
             ->map(fn (Source $source): array => $this->sourceSummary($source) + ['uses' => (int) ($uses[$source->xref()] ?? 0)])
-            ->sort(static fn (array $a, array $b): int => I18N::comparator()($a['title'], $b['title']))
+            ->sort(static fn (array $a, array $b): int => $comparator($a['title'], $b['title']))
             ->values()
             ->all();
 
@@ -1277,6 +1417,8 @@ trait ReadActions
 
         $uses = $this->linkCounts($tree, 'REPO');
 
+        $comparator = Compat::comparator();
+
         $repos = DB::table('other')
             ->where('o_file', '=', $tree->id())
             ->where('o_type', '=', 'REPO')
@@ -1290,7 +1432,7 @@ trait ReadActions
                 'canEdit' => $repo->canEdit(),
                 'uses'    => (int) ($uses[$repo->xref()] ?? 0),
             ])
-            ->sort(static fn (array $a, array $b): int => I18N::comparator()($a['name'], $b['name']))
+            ->sort(static fn (array $a, array $b): int => $comparator($a['name'], $b['name']))
             ->values()
             ->all();
 

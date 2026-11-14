@@ -232,7 +232,7 @@ trait MergeActions
         $gedcom = '0 @' . $person1->xref() . '@ INDI';
 
         foreach ([[$person1, $keep1], [$person2, $keep2]] as [$person, $keep]) {
-            foreach ($person->facts([], false, Auth::PRIV_HIDE, true) as $fact) {
+            foreach ($person->facts([], false, Compat::hidden(), true) as $fact) {
                 $tag = $this->shortTag($fact->tag());
                 if ($tag === 'CHAN') {
                     continue;
@@ -420,18 +420,18 @@ trait MergeActions
         $texts2 = [];
         $tags1  = [];
         $tags2  = [];
-        foreach ($person1->facts([], false, Auth::PRIV_HIDE, true) as $fact) {
+        foreach ($person1->facts([], false, Compat::hidden(), true) as $fact) {
             $texts1[] = trim($fact->gedcom());
             $tags1[]  = $this->shortTag($fact->tag());
         }
-        foreach ($person2->facts([], false, Auth::PRIV_HIDE, true) as $fact) {
+        foreach ($person2->facts([], false, Compat::hidden(), true) as $fact) {
             $texts2[] = trim($fact->gedcom());
             $tags2[]  = $this->shortTag($fact->tag());
         }
 
         $list = function (Individual $person, array $other_texts, array $other_tags, bool $first): array {
             $out = [];
-            foreach ($person->facts([], false, Auth::PRIV_HIDE, true) as $fact) {
+            foreach ($person->facts([], false, Compat::hidden(), true) as $fact) {
                 $tag = $this->shortTag($fact->tag());
                 if ($tag === 'CHAN' || $tag === '_UID' && !$first) {
                     continue;
