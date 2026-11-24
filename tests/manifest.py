@@ -277,7 +277,26 @@ ROUTEN = [
     ("post", "Reject", True, 5, "moderator", "Reject pending changes of one record, or of the whole tree without `xref`.",
      [P("xref", "Record, optional")], None),
     ("post", "Pair", False, 6, "visitor",
-     "Redeem the one-time code from the page “App”: afterwards this session is signed in as that user.", [], "`{code}`"),
+     "Redeem the one-time code from the page “App”: afterwards this session is signed in as that user. From level 47 "
+     "with `deviceName` the answer also carries a `deviceToken` (see `Device`); without it `deviceToken` is `null`.",
+     [], "`{code, deviceName?}`"),
+    ("post", "Device", False, 47, "visitor",
+     "Device token: stay signed in when the server drops the webtrees session (PHP removes sessions after "
+     "`session.gc_maxlifetime`, 24 minutes by default, wherever its clean-up runs). Signed in, with `{deviceName}`: "
+     "issues a token for this device – `deviceName` (up to 32 characters) is what the user sees in the list of connected "
+     "devices on the page “App”. With `{deviceToken}`, signed in or not: redeems the token – afterwards the session is "
+     "signed in as the token's user, and the answer carries the **next** token; store it at once, it replaces the one "
+     "sent. The token sent stays valid for another 2 minutes (lost answer, two parts of a client redeeming at the same "
+     "time); an older one disconnects the device (`device-revoked`, entry in the authentication log). A token ends "
+     "after 90 days without use and when the password changes (`device-expired`); unknown token or account not "
+     "approved: `device-invalid`; `device-busy` (409): try again. On every error except `device-busy` the client drops the token "
+     "and asks for the password. The server stores only a hash of the token, as a user setting per device. The token "
+     "signs in and nothing more: what another module demands of a new session (a second factor) still applies. "
+     "`csrf` in the answer is the token for the following POST requests.",
+     [], "`{deviceName}` or `{deviceToken}`. Answer: `{ok, deviceToken, user}`, when redeeming also `csrf`."),
+    ("post", "DeviceDelete", False, 47, "visitor",
+     "Disconnect this device (sign out in a client): the token is deleted on the server. Needs no session. The answer "
+     "is always `{ok: true}`, whether the token existed or not.", [], "`{deviceToken}`"),
     ("get", "Messages", True, 42, "member",
      "The signed-in user's inbox from webtrees' own messaging (table `message`, the “Messages” block on “My page”), newest "
      "first, 50 per page. webtrees stores the mail wording around the message; `text` is the message alone, `url` the page "
@@ -301,7 +320,7 @@ ROUTEN = [
 
 FEHLER = sorted(set(re.findall(r"error\((\d+), '([a-z-]+)'\)", "".join(
     open(os.path.join(umgebung.MODUL, f)).read() for f in
-    ["Api4WebtreesModule.php", "src/ReadActions.php", "src/WriteActions.php", "src/AppPages.php", "src/MergeActions.php", "src/TaskActions.php", "src/MessageActions.php"]))),
+    ["Api4WebtreesModule.php", "src/ReadActions.php", "src/WriteActions.php", "src/AppPages.php", "src/MergeActions.php", "src/TaskActions.php", "src/MessageActions.php", "src/DeviceActions.php"]))),
     key=lambda e: (e[0], e[1]))
 
 
@@ -468,7 +487,15 @@ def sammeln(u):
     # Koppeln: die Seite "App" legt den Einmal-Code an, eine frische Sitzung loest ihn ein.
     seite = admin._senden(urllib.request.Request(admin.url("/module/_api4webtrees_/App")))
     code = re.findall(r"[0-9a-f]{48}", seite.text)[0]
-    merken("post", "Pair", u.sitzung().post("Pair", None, {"code": code}))
+    gekoppelt = u.sitzung()
+    gekoppelt.info()
+    merken("post", "Pair", gekoppelt.post("Pair", None, {"code": code}))
+    geraet = admin.post("Device", None, {"deviceName": "Manifest"})
+    merken("post", "Device", geraet)
+    eingeloest = u.sitzung().post("Device", None, {"deviceToken": geraet.json["deviceToken"]})
+    merken("post", "Device", eingeloest)
+    geraet = eingeloest
+    merken("post", "DeviceDelete", admin.post("DeviceDelete", None, {"deviceToken": geraet.json["deviceToken"]}))
     merken("post", "DeleteRecord", admin.post("DeleteRecord", "testbaum", {}, xref=ehe.json["xref"]))
     # Nachrichten: Kontaktart setzen (Kommandozeilen-Konten haben keine), eine Nachricht mit Links an mitglied
     for name, art in (("admin", "messaging"), ("mitglied", "messaging"), ("bearbeiter", "messaging3")):

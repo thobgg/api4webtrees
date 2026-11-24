@@ -101,5 +101,11 @@ return [
     'Die .dmg-Datei öffnen und %s in „Programme“ ziehen (arm64 für Macs mit Apple-Chip, x64 für Intel-Macs – beide auf der Release-Seite). Die Datei ist nicht signiert: beim ersten Start unter Systemeinstellungen › Datenschutz & Sicherheit „Trotzdem öffnen“. Testfassung – Rückmeldungen willkommen.' => 'Open het .dmg-bestand en sleep %s naar „Programma’s” (arm64 voor Macs met Apple-chip, x64 voor Intel-Macs – beide op de releasepagina). Het bestand is niet ondertekend: kies bij de eerste start onder Systeeminstellingen › Privacy en beveiliging „Toch openen”. Testversie – feedback welkom.',
     'Vom Autor dieses Moduls – App und Schnittstelle werden gemeinsam entwickelt.' => 'Van de auteur van deze module – app en koppeling worden samen ontwikkeld.',
     'Alle Apps auf dieser Seite sprechen mit diesem Server über das webtrees-Modul %s.' => 'Alle apps op deze pagina praten met deze server via de webtrees-module %s.',
+    'Verbundene Geräte' => 'Verbonden apparaten',
+    'Diese Apps bleiben mit deinem Konto verbunden, ohne nach dem Passwort zu fragen. Eine Verbindung endet, wenn du sie hier trennst, dich in der App abmeldest, dein Passwort änderst oder die App %s Tage nicht benutzt.' => 'Deze apps blijven met je account verbonden zonder naar het wachtwoord te vragen. Een verbinding eindigt wanneer je haar hier verbreekt, je in de app afmeldt, je wachtwoord wijzigt of de app %s dagen niet gebruikt.',
+    'Gerät' => 'Apparaat',
+    'Verbunden seit' => 'Verbonden sinds',
+    'Zuletzt benutzt' => 'Laatst gebruikt',
+    'Trennen' => 'Verbreken',
     self::DESCRIPTION => 'JSON-interface voor de apps wtAnd, wtWin en wtTux – en elke andere client. Leest en schrijft met de rechten van de aangemelde gebruiker.',
 ];

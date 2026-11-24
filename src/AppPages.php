@@ -203,6 +203,11 @@ trait AppPages
             'connect_qr'   => $connect_url === '' ? '' : $this->qrSvg($connect_url),
             'deep'         => $deep,
             'minutes'      => intdiv(self::PAIR_SECONDS, 60),
+            // Verbundene Geraete (Geraete-Token, Stufe 47) mit "Trennen"
+            'connected_devices' => Auth::check() ? $this->devices($user) : [],
+            'device_days'  => intdiv(self::DEVICE_IDLE_SECONDS, 86400),
+            'device_off_url' => $this->actionUrl('DeviceOff', null),
+            'page_url'     => (string) $request->getUri(),
         ]);
     }
 
@@ -241,11 +246,13 @@ trait AppPages
 
     /**
      * Die App loest den Einmal-Code ein: Rumpf { code }. Danach ist ihre Sitzung als dieser Benutzer angemeldet -
-     * ohne dass ein Passwort das Geraet je gesehen hat.
+     * ohne dass ein Passwort das Geraet je gesehen hat. Mit { code, deviceName } (ab Stufe 47) stellt die Antwort
+     * gleich ein Geraete-Token aus (src/DeviceActions.php); ohne deviceName ist deviceToken null.
      */
     public function postPairAction(ServerRequestInterface $request): ResponseInterface
     {
-        $code = $this->str($this->body($request), 'code');
+        $body = $this->body($request);
+        $code = $this->str($body, 'code');
 
         if (preg_match('/^[0-9a-f]{' . (2 * self::PAIR_CODE_BYTES) . '}$/', $code) !== 1) {
             return $this->error(400, 'pair-invalid');
@@ -280,7 +287,12 @@ trait AppPages
         $user->setPreference(UserInterface::PREF_TIMESTAMP_ACTIVE, (string) time());
         $user->setPreference(self::hintKey($request), self::HINT_CONNECTED);
 
-        return response(['ok' => true, 'tree' => $tree_name, 'user' => $user->userName()]);
+        return response([
+            'ok'          => true,
+            'tree'        => $tree_name,
+            'user'        => $user->userName(),
+            'deviceToken' => $this->str($body, 'deviceName') === '' ? null : $this->deviceIssue($user, $this->str($body, 'deviceName')),
+        ]);
     }
 
     /**

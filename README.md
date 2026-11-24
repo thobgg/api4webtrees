@@ -70,7 +70,8 @@ The module's address changed with it (`_api4webtrees_` instead of `_webtreesand-
 and the module takes over its settings from the old name on first run (1.3.2).
 
 To update, replace the folder. To uninstall, delete it. The module creates no database tables. It stores
-one module setting (which trees the app may reach) and, per user, only the hash of a pairing code while it is valid.
+one module setting (which trees the app may reach) and, per user, only the hash of a pairing code while it is valid
+and – for apps that stay signed in – one entry per connected device: its name, two dates and the hash of its token.
 
 ## Settings
 
@@ -231,6 +232,14 @@ The contract for one-tap connecting is the one wtAnd uses:
    `X-CSRF-TOKEN` and body `{"code": "<code>"}` – like every other POST. Answer: `{"ok":true,"tree":"…","user":"…"}` – the session
    is now signed in as that user – or `{"ok":false,"error":"pair-invalid"|"pair-expired"}`.
 3. The rules for the code are those [above](#for-users-the-app-page), whichever app redeems it.
+4. Staying signed in (level 47): webtrees sets no session lifetime, so on servers where PHP's session clean-up runs
+   the session ends after `session.gc_maxlifetime` (24 minutes by default) and the app would ask for the password
+   again. An app can send `"deviceName"` with `Pair` (or call `POST …/Device` with `{"deviceName": "…"}` after a
+   password sign-in) and gets a `deviceToken`. When `Info` says it is no longer signed in, it calls `POST …/Device`
+   with `{"deviceToken": "…"}`: the session is signed in again and the answer carries the next token, which replaces
+   the one sent. Signing out: `POST …/DeviceDelete`. Rules and errors: [docs/API.md](docs/API.md). The token is as good
+   as a password for this account – keep it in the platform's protected storage. Users see their connected devices
+   on the “App” page and can disconnect each one there.
 
 ### Reading (GET)
 

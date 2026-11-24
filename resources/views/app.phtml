@@ -21,7 +21,20 @@ use Fisharebest\Webtrees\I18N;
  * @var int                               $minutes
  * @var string                            $device        windows, linux, mac, android, ios, other
  * @var string                            $base_url
+ * @var list<array{id:string,name:string,created:int,used:int}> $connected_devices  verbundene Geraete (Geraete-Token)
+ * @var int                               $device_days   so viele Tage ohne Benutzung, dann verfaellt die Verbindung
+ * @var string                            $device_off_url
+ * @var string                            $page_url
  */
+
+// Datum in der Sprache der Seite - ohne die Zeitstempel-Klassen von webtrees, die sich zwischen 2.2 und 2.3 unterscheiden.
+$day = static function (int $timestamp): string {
+    $text = class_exists(IntlDateFormatter::class)
+        ? (new IntlDateFormatter(I18N::languageTag(), IntlDateFormatter::MEDIUM, IntlDateFormatter::NONE))->format($timestamp)
+        : false;
+
+    return is_string($text) ? $text : date('Y-m-d', $timestamp);
+};
 
 $json = static fn (mixed $value): string => json_encode($value, JSON_THROW_ON_ERROR | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
 
@@ -225,6 +238,38 @@ $none = Apps::matching($apps, $device) === [];
         </details>
     <?php endif ?>
 <?php endforeach ?>
+
+<?php if ($connected_devices !== []) : ?>
+    <h3 class="h4 mt-5 mb-2" id="wt-api4webtrees-devices"><?= I18N::translate('Verbundene Geräte') ?></h3>
+    <p class="text-muted small"><?= I18N::translate('Diese Apps bleiben mit deinem Konto verbunden, ohne nach dem Passwort zu fragen. Eine Verbindung endet, wenn du sie hier trennst, dich in der App abmeldest, dein Passwort änderst oder die App %s Tage nicht benutzt.', I18N::number($device_days)) ?></p>
+    <table class="table table-sm align-middle" style="max-width: 44rem;">
+        <thead>
+            <tr>
+                <th><?= I18N::translate('Gerät') ?></th>
+                <th><?= I18N::translate('Verbunden seit') ?></th>
+                <th><?= I18N::translate('Zuletzt benutzt') ?></th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php foreach ($connected_devices as $connected) : ?>
+                <tr>
+                    <td><?= e($connected['name']) ?></td>
+                    <td><?= e($day($connected['created'])) ?></td>
+                    <td><?= e($day($connected['used'])) ?></td>
+                    <td class="text-end">
+                        <form method="post" action="<?= e($device_off_url) ?>" class="m-0">
+                            <?= csrf_field() ?>
+                            <input type="hidden" name="id" value="<?= e($connected['id']) ?>">
+                            <input type="hidden" name="url" value="<?= e($page_url) ?>">
+                            <button type="submit" class="btn btn-outline-danger btn-sm"><?= I18N::translate('Trennen') ?></button>
+                        </form>
+                    </td>
+                </tr>
+            <?php endforeach ?>
+        </tbody>
+    </table>
+<?php endif ?>
 
 <p class="text-muted small mt-4"><?= I18N::translate('Alle Apps auf dieser Seite sprechen mit diesem Server über das webtrees-Modul %s.', '<a href="https://github.com/thobgg/api4webtrees" target="_blank" rel="noopener">api4webtrees</a>') ?></p>
 

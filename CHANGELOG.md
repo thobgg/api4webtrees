@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.30.0 – 2026-11-24
+**Level 47 – device token: apps stay signed in.** webtrees sets no session lifetime; where PHP's session clean-up runs
+(e.g. Synology Web Station), a session ends after `session.gc_maxlifetime` – 24 minutes by default – and an app asked for
+the password at every start. New route `POST Device`: signed in, `{deviceName}` issues a token for the device; with
+`{deviceToken}` – signed in or not – the session is signed in as the token's user and the answer carries the next token.
+`POST Pair` issues one too when `deviceName` is sent (`deviceToken`, otherwise `null`). `POST DeviceDelete` disconnects
+a device. The token changes with every use, the one before stays valid for 2 minutes, an older one disconnects the device
+and is logged; it ends after 90 days without use and when the password changes. The server stores only a hash, as a user
+setting per device (no new table). The page “App” lists the connected devices with “Disconnect”. A token signs in and
+nothing more – what another module demands of a new session (second factor) still applies. Errors: `device-invalid`,
+`device-expired`, `device-revoked`, `device-busy`. Nothing changes for clients that do not use it.
+
 ## 1.29.0 – 2026-11-17
 **Level 46 – write the parts of a name (issue #28).** `POST Fact` on a `NAME` fact also accepts `nameParts`
 `{prefix, given, nickname, surnamePrefix, surname, suffix, callName}`, written as stored (`NPFX`, `GIVN`, `NICK`, `SPFX`,

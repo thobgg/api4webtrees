@@ -72,7 +72,8 @@ Damit ändert sich auch die Adresse des Moduls (`_api4webtrees_` statt `_webtree
 und das Modul übernimmt beim ersten Aufruf seine Einstellungen vom alten Namen (1.3.2).
 
 Aktualisieren: Ordner ersetzen. Entfernen: Ordner löschen. Das Modul legt keine Datenbanktabellen an. Es
-speichert eine Moduleinstellung (welche Bäume die App erreichen darf) und je Benutzer nur den Hash eines Einmal-Codes, solange er gilt.
+speichert eine Moduleinstellung (welche Bäume die App erreichen darf) und je Benutzer nur den Hash eines Einmal-Codes, solange er gilt,
+sowie – für Apps, die angemeldet bleiben – je verbundenem Gerät einen Eintrag: Name, zwei Daten und der Hash seines Tokens.
 
 ## Einstellungen
 
@@ -194,6 +195,15 @@ ab. Verwalter können jede App in den Einstellungen abhaken. Der Vertrag fürs K
 in der App. Die App holt sich mit `GET …/Info` Sitzungs-Cookie und `csrf`, dann `POST …/Pair` mit Header `X-CSRF-TOKEN`
 und Rumpf `{"code": "…"}`; Antwort `{"ok":true,"tree":"…","user":"…"}`, die Sitzung ist jetzt als dieser Benutzer
 angemeldet. Für den Code gelten die Regeln [oben](#für-benutzer-die-seite-app), egal welche App ihn einlöst.
+
+Angemeldet bleiben (Stufe 47): webtrees legt keine Sitzungsdauer fest; wo PHP Sitzungen aufräumt, endet die Sitzung nach
+`session.gc_maxlifetime` (Standard 24 Minuten), und die App müsste wieder nach dem Passwort fragen. Eine App kann bei
+`Pair` `"deviceName"` mitschicken (oder nach der Anmeldung mit Passwort `POST …/Device` mit `{"deviceName": "…"}`
+aufrufen) und bekommt ein `deviceToken`. Meldet `Info`, dass sie nicht mehr angemeldet ist, ruft sie `POST …/Device` mit
+`{"deviceToken": "…"}` auf: Die Sitzung ist wieder angemeldet, die Antwort trägt das nächste Token, es ersetzt das
+gesendete. Abmelden: `POST …/DeviceDelete`. Regeln und Fehler stehen in [docs/API.md](docs/API.md). Das Token ist für
+dieses Konto so gut wie ein Passwort und gehört in den geschützten Speicher des Geräts. Benutzer sehen ihre verbundenen
+Geräte auf der Seite „App“ und können jedes dort trennen.
 
 Einstieg in den Quelltext ist der Kopf von `Api4WebtreesModule.php`: dort steht, welcher Teil des Moduls in
 welcher Datei unter `src/` liegt.

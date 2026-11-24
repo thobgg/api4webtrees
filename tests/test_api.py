@@ -13,6 +13,7 @@ import subprocess
 import urllib.parse
 import urllib.request
 import sys
+import time
 import unittest
 
 import manifest
@@ -1800,6 +1801,226 @@ class Schreiben(unittest.TestCase):
         a = s.post("Pair", None, {"code": "0" * 48})
         self.assertEqual(False, a.json["ok"], a)
         self.assertFalse(s.info()["user"]["loggedIn"])
+
+
+class Geraete(unittest.TestCase):
+    """Stufe 47: Geraete-Token - ausstellen, einloesen mit Wechsel, Frist des Vorgaengers, Sperre, Verfall, Trennen."""
+
+    @staticmethod
+    def uid(name):
+        return umgebung.sql("SELECT user_id FROM wt_user WHERE user_name = ?", name)[0][0]
+
+    def zeilen(self, name):
+        return umgebung.sql("SELECT setting_name, setting_value FROM wt_user_setting WHERE user_id = ? AND setting_name LIKE 'api4wt_dev_%'", self.uid(name))
+
+    def aufraeumen(self):
+        umgebung.sql("DELETE FROM wt_user_setting WHERE setting_name LIKE 'api4wt_dev_%'")
+
+    def setUp(self):
+        self.aufraeumen()
+
+    def tearDown(self):
+        self.aufraeumen()
+
+    def ausstellen(self, benutzer="mitglied", name="Testhandy"):
+        a = U.sitzung(benutzer).post("Device", None, {"deviceName": name})
+        self.assertTrue(a.json["ok"], a)
+        self.assertRegex(a.json["deviceToken"], r"^[0-9a-f]{16}\.[0-9a-f]{64}$")
+        return a.json["deviceToken"]
+
+    def einloesen(self, token, sitzung=None):
+        s = sitzung or U.sitzung()
+        return s, s.post("Device", None, {"deviceToken": token})
+
+    def feld(self, token, nummer, wert):
+        """Ein Feld des gespeicherten Eintrags aendern (hash|prev|prevUntil|created|used|password|name)."""
+        name = "api4wt_dev_" + token.split(".")[0]
+        teile = umgebung.sql("SELECT setting_value FROM wt_user_setting WHERE setting_name = ?", name)[0][0].split("|")
+        teile[nummer] = str(wert)
+        umgebung.sql("UPDATE wt_user_setting SET setting_value = ? WHERE setting_name = ?", "|".join(teile), name)
+
+    def test_ausstellen_nur_angemeldet(self):
+        a = U.sitzung().post("Device", None, {"deviceName": "Fremd"})
+        self.assertEqual("not-logged-in", a.json["error"])
+        self.assertEqual([], self.zeilen("mitglied"))
+
+    def test_einloesen_meldet_an_und_wechselt(self):
+        t0 = self.ausstellen()
+        # Gespeichert ist nur der Hash: das Geheimnis steht nirgends in der Datenbank
+        (name, wert), = self.zeilen("mitglied")
+        self.assertEqual("api4wt_dev_" + t0.split(".")[0], name)
+        self.assertNotIn(t0.split(".")[1], wert)
+        self.assertLessEqual(len(name), 32)
+        self.assertTrue(wert.endswith("|Testhandy"))
+
+        s, a = self.einloesen(t0)
+        self.assertTrue(a.json["ok"], a)
+        self.assertEqual("mitglied", a.json["user"])
+        t1 = a.json["deviceToken"]
+        self.assertNotEqual(t0, t1)
+        self.assertEqual(t0.split(".")[0], t1.split(".")[0])
+        info = s.info()
+        self.assertEqual("mitglied", info["user"]["userName"])
+        self.assertEqual(a.json["csrf"], info["csrf"])
+        # Die Sitzung traegt: ein POST, der eine Anmeldung braucht
+        self.assertTrue(s.post("Device", None, {"deviceName": "Zweites"}).json["ok"])
+
+        # Der Vorgaenger gilt noch in seiner Frist (Antwort verloren) und liefert wieder ein neues Token
+        s2, b = self.einloesen(t0)
+        self.assertTrue(b.json["ok"], b)
+        t2 = b.json["deviceToken"]
+        self.assertNotIn(t2, (t0, t1))
+        # ... und das bisher aktuelle ist jetzt der Vorgaenger, ebenfalls noch gueltig
+        self.assertTrue(self.einloesen(t1)[1].json["ok"])
+
+    def test_altes_token_sperrt_das_geraet(self):
+        t0 = self.ausstellen()
+        t1 = self.einloesen(t0)[1].json["deviceToken"]
+        self.feld(t0, 2, 1)  # Frist des Vorgaengers abgelaufen
+        s, a = self.einloesen(t0)
+        self.assertEqual("device-revoked", a.json["error"])
+        self.assertFalse(s.info()["user"]["loggedIn"])
+        self.assertEqual([], self.zeilen("mitglied"))
+        # auch das neueste Token ist damit weg
+        self.assertEqual("device-invalid", self.einloesen(t1)[1].json["error"])
+        log = umgebung.sql("SELECT log_message FROM wt_log WHERE log_type = 'auth' ORDER BY log_id DESC LIMIT 1")[0][0]
+        self.assertIn("Gerät getrennt", log)
+
+    def test_falsches_geheimnis_sperrt(self):
+        t0 = self.ausstellen()
+        falsch = t0.split(".")[0] + "." + "0" * 64
+        self.assertEqual("device-revoked", self.einloesen(falsch)[1].json["error"])
+        self.assertEqual("device-invalid", self.einloesen(t0)[1].json["error"])
+
+    def test_unbekannt_und_unlesbar(self):
+        self.assertEqual("device-invalid", self.einloesen("0" * 16 + "." + "0" * 64)[1].json["error"])
+        self.assertEqual("device-invalid", self.einloesen("unsinn")[1].json["error"])
+        self.assertEqual("device-invalid", self.einloesen("%" * 16 + "." + "_" * 64)[1].json["error"])
+
+    def test_verfall_nach_90_tagen(self):
+        t0 = self.ausstellen()
+        self.feld(t0, 4, int(time.time()) - 89 * 86400)
+        t1 = self.einloesen(t0)[1].json["deviceToken"]
+        self.feld(t1, 4, int(time.time()) - 91 * 86400)
+        s, a = self.einloesen(t1)
+        self.assertEqual("device-expired", a.json["error"])
+        self.assertFalse(s.info()["user"]["loggedIn"])
+        self.assertEqual([], self.zeilen("mitglied"))
+
+    def test_passwortaenderung_macht_ungueltig(self):
+        t0 = self.ausstellen()
+        uid = self.uid("mitglied")
+        alt = umgebung.sql("SELECT password FROM wt_user WHERE user_id = ?", uid)[0][0]
+        try:
+            umgebung.sql("UPDATE wt_user SET password = ? WHERE user_id = ?", alt + "x", uid)
+            self.assertEqual("device-expired", self.einloesen(t0)[1].json["error"])
+        finally:
+            umgebung.sql("UPDATE wt_user SET password = ? WHERE user_id = ?", alt, uid)
+        self.assertEqual([], self.zeilen("mitglied"))
+
+    def test_nicht_freigegebenes_konto(self):
+        t0 = self.ausstellen()
+        uid = self.uid("mitglied")
+        try:
+            umgebung.sql("UPDATE wt_user_setting SET setting_value = '0' WHERE user_id = ? AND setting_name = 'verified_by_admin'", uid)
+            s, a = self.einloesen(t0)
+            self.assertEqual("device-invalid", a.json["error"])
+            self.assertFalse(s.info()["user"]["loggedIn"])
+        finally:
+            umgebung.sql("UPDATE wt_user_setting SET setting_value = '1' WHERE user_id = ? AND setting_name = 'verified_by_admin'", uid)
+        self.assertTrue(self.einloesen(t0)[1].json["ok"])
+
+    def test_ohne_csrf_passiert_nichts(self):
+        t0 = self.ausstellen()
+        vorher = self.zeilen("mitglied")
+        s = U.sitzung()
+        a = s.post("Device", None, {"deviceToken": t0}, csrf=False)
+        self.assertIsNone(a.json)
+        self.assertFalse(s.info()["user"]["loggedIn"])
+        self.assertEqual(vorher, self.zeilen("mitglied"))
+
+    def test_anderer_benutzer_angemeldet(self):
+        """Eine als admin angemeldete Sitzung loest das Token von mitglied ein: danach mitglied, mit frischer Sitzung."""
+        t0 = self.ausstellen()
+        s = U.sitzung("admin")
+        _, a = self.einloesen(t0, s)
+        self.assertTrue(a.json["ok"], a)
+        info = s.info()
+        self.assertEqual("mitglied", info["user"]["userName"])
+        self.assertFalse(info["user"]["isAdmin"])
+        self.assertEqual("mitglied", s.info()["user"]["userName"])
+        self.assertEqual("not-manager", s.post("Merge", "testbaum", {"xref1": "I1", "xref2": "I2", "preview": True}).json["error"])
+
+    def test_schon_angemeldet_wechselt_nur_das_token(self):
+        t0 = self.ausstellen()
+        s = U.sitzung("mitglied")
+        _, a = self.einloesen(t0, s)
+        self.assertTrue(a.json["ok"], a)
+        self.assertEqual(s.csrf, a.json["csrf"])
+        self.assertEqual("mitglied", s.info()["user"]["userName"])
+
+    def test_trennen_mit_token(self):
+        t0 = self.ausstellen()
+        t1 = self.einloesen(t0)[1].json["deviceToken"]
+        s = U.sitzung()
+        self.assertEqual({"ok": True}, s.post("DeviceDelete", None, {"deviceToken": t1.split(".")[0] + "." + "0" * 64}).json)
+        self.assertEqual(1, len(self.zeilen("mitglied")))
+        self.assertEqual({"ok": True}, s.post("DeviceDelete", None, {"deviceToken": "unsinn"}).json)
+        self.assertEqual({"ok": True}, s.post("DeviceDelete", None, {"deviceToken": t1}).json)
+        self.assertEqual([], self.zeilen("mitglied"))
+        self.assertEqual("device-invalid", self.einloesen(t1)[1].json["error"])
+
+    def test_geraeteliste_und_trennen_auf_der_seite(self):
+        t_m = self.ausstellen("mitglied", "Handy <b>von</b> Mia|x")
+        t_b = self.ausstellen("bearbeiter", "Bearbeiter-PC")
+        m = U.sitzung("mitglied")
+        seite = lambda: m._senden(urllib.request.Request(m.url("/module/_api4webtrees_/App/testbaum"))).text  # noqa: E731
+        html = seite()
+        self.assertIn("Verbundene Geräte", html)
+        self.assertIn("Handy &lt;b&gt;von&lt;/b&gt; Mia x", html)
+        self.assertNotIn("Bearbeiter-PC", html)
+        self.assertNotIn(t_m.split(".")[1], html)
+
+        def trennen(kennung):
+            form = urllib.parse.urlencode({"_csrf": m.csrf, "id": kennung}).encode()
+            return m._senden(urllib.request.Request(m.url("/module/_api4webtrees_/DeviceOff"), data=form, method="POST"))
+
+        # Fremdes Geraet: bleibt
+        trennen(t_b.split(".")[0])
+        self.assertEqual(1, len(self.zeilen("bearbeiter")))
+        trennen(t_m.split(".")[0])
+        self.assertEqual([], self.zeilen("mitglied"))
+        self.assertNotIn("Verbundene Geräte", seite())
+        self.assertEqual("device-invalid", self.einloesen(t_m)[1].json["error"])
+        self.assertTrue(self.einloesen(t_b)[1].json["ok"])
+
+    def test_name_und_hoechstzahl(self):
+        s = U.sitzung("mitglied")
+        s.post("Device", None, {"deviceName": "x" * 100})
+        (_, wert), = self.zeilen("mitglied")
+        self.assertTrue(wert.endswith("|" + "x" * 32))
+        self.assertLessEqual(len(wert), 255)
+        erstes = self.zeilen("mitglied")[0][0]
+        self.feld(erstes[len("api4wt_dev_"):] + ".", 4, int(time.time()) - 86400)
+        for n in range(22):
+            self.assertTrue(s.post("Device", None, {"deviceName": f"Nr {n}"}).json["ok"])
+        zeilen = self.zeilen("mitglied")
+        self.assertEqual(20, len(zeilen))
+        # das am laengsten unbenutzte ist herausgefallen
+        self.assertNotIn(erstes, [z[0] for z in zeilen])
+
+    def test_koppeln_mit_geraetename(self):
+        admin = U.sitzung("admin")
+        code = lambda: re.findall(r"[0-9a-f]{48}", admin._senden(urllib.request.Request(admin.url("/module/_api4webtrees_/App"))).text)[0]  # noqa: E731
+        a = U.sitzung().post("Pair", None, {"code": code()})
+        self.assertTrue(a.json["ok"], a)
+        self.assertIsNone(a.json["deviceToken"])
+        self.assertEqual([], self.zeilen("admin"))
+        a = U.sitzung().post("Pair", None, {"code": code(), "deviceName": "Per QR"})
+        token = a.json["deviceToken"]
+        s, b = self.einloesen(token)
+        self.assertTrue(b.json["ok"], b)
+        self.assertTrue(s.info()["user"]["isAdmin"])
 
 
 class Nachrichten(unittest.TestCase):

@@ -61,6 +61,7 @@ use function strtolower;
  *   src/MergeActions.php  Personen zusammenfuehren mit Vorschau, Protokoll und Rueckgaengig
  *   src/TaskActions.php   Forschungsaufgaben, Reihenfolge, Aenderungsverlauf (Stufe 30)
  *   src/MessageActions.php Nachrichten: Posteingang, Senden, Loeschen ueber webtrees' Nachrichtensystem (Stufe 42)
+ *   src/DeviceActions.php Geraete-Token: angemeldet bleiben, auch wenn der Server die Sitzung aufraeumt (Stufe 47)
  *   src/GedcomText.php    reine GEDCOM-Textfunktionen (bauen, pruefen, entschaerfen)
  */
 class Api4WebtreesModule extends AbstractModule implements ModuleCustomInterface, ModuleConfigInterface, ModuleFooterInterface, MiddlewareInterface
@@ -76,6 +77,7 @@ class Api4WebtreesModule extends AbstractModule implements ModuleCustomInterface
     use MergeActions;
     use TaskActions;
     use MessageActions;
+    use DeviceActions;
 
 
     // webtrees benennt ein eigenes Modul nach seinem Ordner ("_api4webtrees_") - was setName() im Modul sagt,
@@ -83,7 +85,7 @@ class Api4WebtreesModule extends AbstractModule implements ModuleCustomInterface
     // unter diesem Namen liegen bei Bestandsinstallationen noch die Einstellungen (siehe boot()).
     public const string OLD_MODULE_NAME = '_webtreesand-api_';
     // Was welche Stufe gebracht hat, steht in docs/API.md (Spalte "since") und in CHANGELOG.md.
-    public const int    API_VERSION = 46;
+    public const int    API_VERSION = 47;
 
     /** Benutzereinstellung je Baum: die Merkliste als Liste von Personenkennungen. */
     private const string BOOKMARKS_PREF = 'api4webtrees_bookmarks';
@@ -257,7 +259,7 @@ class Api4WebtreesModule extends AbstractModule implements ModuleCustomInterface
 
     public function customModuleVersion(): string
     {
-        return '1.29.0';
+        return '1.30.0';
     }
 
     public function customModuleLatestVersionUrl(): string
