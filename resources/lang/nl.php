@@ -102,7 +102,7 @@ return [
     'Vom Autor dieses Moduls – App und Schnittstelle werden gemeinsam entwickelt.' => 'Van de auteur van deze module – app en koppeling worden samen ontwikkeld.',
     'Alle Apps auf dieser Seite sprechen mit diesem Server über das webtrees-Modul %s.' => 'Alle apps op deze pagina praten met deze server via de webtrees-module %s.',
     'Verbundene Geräte' => 'Verbonden apparaten',
-    'Diese Apps bleiben mit deinem Konto verbunden, ohne nach dem Passwort zu fragen. Eine Verbindung endet, wenn du sie hier trennst, dich in der App abmeldest, dein Passwort änderst oder die App %s Tage nicht benutzt.' => 'Deze apps blijven met je account verbonden zonder naar het wachtwoord te vragen. Een verbinding eindigt wanneer je haar hier verbreekt, je in de app afmeldt, je wachtwoord wijzigt of de app %s dagen niet gebruikt.',
+    'Diese Apps bleiben mit deinem Konto verbunden, ohne nach dem Passwort zu fragen. Eine Verbindung endet, wenn du sie hier trennst, dich in der App abmeldest, dein Passwort änderst oder die App %s Tage nicht benutzt.' => 'Deze apps blijven met uw account verbonden zonder naar uw wachtwoord te vragen. Een verbinding wordt beëindigd wanneer u deze hier verbreekt, u zich afmeldt bij de app, uw wachtwoord wijzigt of de app %s dagen niet gebruikt.',
     'Gerät' => 'Apparaat',
     'Verbunden seit' => 'Verbonden sinds',
     'Zuletzt benutzt' => 'Laatst gebruikt',
