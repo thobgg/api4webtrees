@@ -63,6 +63,20 @@
 3 PAGE Begräbnisse 1880
 1 ASSO @I1@
 2 RELA friend
+1 FACT 21.1
+2 TYPE DNA Match
+2 NOTE Segments: 1
+3 CONT Longest segment: 21.1
+3 CONT Chromosome,Start,End,cM
+3 CONT 1,31096348,50093545,21.1
+2 RESN privacy
+1 FACT 35.5
+2 TYPE DNA Match
+2 NOTE Segments: 1
+3 CONT Longest segment: 35.5
+3 CONT Chromosome,Start,End,cM
+3 CONT 7,58054331,99000000,35.5
+2 RESN confidential
 1 FAMS @F1@
 0 @I4@ INDI
 1 NAME Karl /Offen/

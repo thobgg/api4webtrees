@@ -30,11 +30,15 @@ KONFIDENZ = "Markerkonfidenz"  # Daten von Konrad (I5, 1 RESN confidential): Not
 # Voreinstellung "Mitglieder") - nur die Daten bleiben verborgen. Gaeste sehen auch den Namen nicht.
 NAME_PRIVAT = "Markername"
 GEHEIMBAUM = "Markerbaum"      # einzige Person im privaten Baum "geheim"
+# DNA-Treffer bei Anna (I2) als gewoehnliche Fakten (1 FACT, 2 TYPE DNA Match) mit Segmenttabelle in der Notiz. Die API
+# filtert sie nicht selbst - den Schutz setzt, wer schreibt, ueber RESN am Eintrag. Markierung ist die Startposition.
+SEGMENT_PRIVAT = "31096348"    # 2 RESN privacy: nur fuer Mitglieder
+SEGMENT_KONFIDENZ = "58054331"  # 2 RESN confidential: nur fuer Verwalter
 
 VERBOTEN = {
-    None: [LEBEND, BERUF, KONFIDENZ, NAME_PRIVAT, GEHEIMBAUM],
-    "mitglied": [KONFIDENZ, GEHEIMBAUM],
-    "bearbeiter": [KONFIDENZ, GEHEIMBAUM],
+    None: [LEBEND, BERUF, KONFIDENZ, NAME_PRIVAT, GEHEIMBAUM, SEGMENT_PRIVAT, SEGMENT_KONFIDENZ],
+    "mitglied": [KONFIDENZ, GEHEIMBAUM, SEGMENT_KONFIDENZ],
+    "bearbeiter": [KONFIDENZ, GEHEIMBAUM, SEGMENT_KONFIDENZ],
 }
 
 
@@ -132,6 +136,12 @@ class Lecktest(unittest.TestCase):
         m = U.sitzung("mitglied")
         self.assertIn(LEBEND, m.get("Individual", "testbaum", xref="I3").text)
         self.assertIn(BERUF, m.get("Individual", "testbaum", xref="I1").text)
+        # DNA-Treffer: beide Segmenttabellen fuer den Verwalter, die mit RESN privacy auch fuer das Mitglied -
+        # die API liefert, was webtrees zeigt, und laesst nichts von sich aus weg.
+        anna = s.get("Individual", "testbaum", xref="I2").text
+        self.assertIn(SEGMENT_PRIVAT, anna)
+        self.assertIn(SEGMENT_KONFIDENZ, anna)
+        self.assertIn(SEGMENT_PRIVAT, m.get("Individual", "testbaum", xref="I2").text)
 
     def test_geheimer_baum_fuer_gast_unsichtbar(self):
         info = U.sitzung().info()
